@@ -1,5 +1,11 @@
 # Git 与 GitHub 上传准备
 
+## 上传结果
+
+2026-09-16，v0.5首次提交 `7f97418` 已推送至目标仓库 `main` 分支，已建立本地 `main` 到 `origin/main` 的跟踪关系。首次提交包含113个文件，原始内容约50 MB。
+
+已用暂存内容导出一份不含Godot缓存的干净副本，完成16张美术的重新导入，并通过51项角色与完整交易流程检查。Git格式检查通过；已检查的常见令牌和私钥格式未发现匹配，最大的单文件约3 MB。
+
 ## 已整理的版本内容
 
 - 分支：`main`。
@@ -19,18 +25,28 @@ git -c http.sslBackend=openssl -c credential.interactive=never ls-remote https:/
 
 默认Windows Schannel在当前环境报 `SEC_E_NO_CREDENTIALS`；使用Git自带OpenSSL成功，未关闭证书校验。当前项目采用仓库级OpenSSL配置，不影响其他项目。
 
-这个结果只验证网络与公共读取能力。目标仓库、账号登录和写入权限还需确认，不能据此声称已上传成功。
+上述命令验证网络与公共读取；随后对目标仓库的实际推送也已成功，确认本次上传所需写入权限可用。
 
 ## 首次提交和上传
 
-目标仓库：[MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp)。提交作者已在本仓库配置为用户提供的信息。目标仓库首次读取成功，当前没有远程分支。
+目标仓库：[MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp)。提交作者已在本仓库配置为用户提供的信息。首次检查时目标为空仓库；推送后已有 `main` 分支。
 
-首次提交和推送使用：
+首次提交和推送使用以下命令（已完成，无需重复添加origin）：
 
 ```powershell
 git commit -m "feat: add playable Thirteen Hongs tea trading game v0.5"
 git remote add origin https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp.git
 git push -u origin main
+```
+
+之后继续更新：
+
+```powershell
+git status
+git add --all
+git diff --cached --check
+git commit -m "说明这次具体改动"
+git push
 ```
 
 如果目标仓库已经有提交，应先获取并检查远程历史，再决定如何合并，避免覆盖现有内容。登录时使用GitHub的浏览器授权或本机凭据管理器，不把令牌写入代码或远程URL。
