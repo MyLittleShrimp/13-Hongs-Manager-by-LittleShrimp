@@ -1,0 +1,18 @@
+* text=auto
+.gitignore text eol=lf
+.gitattributes text eol=lf
+*.gd text eol=lf
+*.gd.uid text eol=lf
+*.tscn text eol=lf
+*.godot text eol=lf
+*.import text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.py text eol=lf
+*.cmd text eol=crlf
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.mp4 -text
+*.zip -text

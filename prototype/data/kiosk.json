@@ -1,0 +1,10 @@
+{
+  "kiosk_mode": false,
+  "hint_seconds": 20,
+  "prompt_seconds": 45,
+  "reset_seconds": 60,
+  "reading_reset_seconds": 90,
+  "result_reset_seconds": 30,
+  "log_limit_bytes": 1048576,
+  "log_backups": 5
+}

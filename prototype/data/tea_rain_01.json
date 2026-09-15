@@ -1,0 +1,22 @@
+{
+  "id": "tea_rain_01",
+  "title": "雨前装箱",
+  "initial_cash": 100,
+  "quantity": 10,
+  "unit_price": 18,
+  "deposit": 60,
+  "deadline_ticks": 6,
+  "inspection": {"cost": 0, "ticks": 1},
+  "suppliers": [
+    {"id": "warehouse", "name": "远仓调货", "subtitle": "多留一份本钱", "cost": 80, "ticks": 3, "description": "货源充足，价格较低。\n调运需要更多工期。"},
+    {"id": "local_stock", "name": "就近现货", "subtitle": "把时间留给包装", "cost": 110, "ticks": 1, "description": "同样合格的茶货，随时可取。\n进价较高，但能腾出工期。"}
+  ],
+  "packaging": [
+    {"id": "basic", "name": "普通包装", "subtitle": "节约成本与工期", "cost": 10, "ticks": 1, "description": "本局装运有雨。\n这批货会有 1 箱受潮，不计货款。", "loss": 1},
+    {"id": "moisture_protection", "name": "加强防潮", "subtitle": "护住这批茶的品质", "cost": 20, "ticks": 2, "description": "多一道防潮处理。\n本局雨情下，10 箱茶都能完好交付。", "loss": 0}
+  ],
+  "delivery": {"cost": 10, "ticks": 1},
+  "late_penalty_per_tick": 10,
+  "history_status": "concept_pending_museum_review",
+  "rules_note": "资金、工期、损耗与订单均为游戏化设定，不对应真实银两、天数或历史交易条款。"
+}

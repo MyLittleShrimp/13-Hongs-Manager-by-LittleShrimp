@@ -1,0 +1,23 @@
+{
+  "initial_cash":160,"deposit":60,"quantity":10,
+  "contracts":[
+    {"name":"稳妥茶单","price":23,"deadline":10,"quality":65,"penalty":12},
+    {"name":"赶船急单","price":29,"deadline":7,"quality":65,"penalty":24},
+    {"name":"上等茶单","price":30,"deadline":10,"quality":86,"penalty":16}
+  ],
+  "suppliers":[
+    {"name":"远仓散茶","cost":100,"ticks":3,"quality_min":62,"quality_max":88,"bad_batch":0.30,"description":"价格低 · 货色起伏较大"},
+    {"name":"街坊茶庄","cost":130,"ticks":2,"quality_min":74,"quality_max":96,"bad_batch":0.16,"description":"货色较稳 · 取货适中"},
+    {"name":"精拣现货","cost":158,"ticks":1,"quality_min":86,"quality_max":100,"bad_batch":0.06,"description":"省时 · 本钱较高"}
+  ],
+  "packing":[
+    {"name":"草衬木箱","cost":8,"ticks":1,"protection":0.12,"description":"便宜轻便 · 防潮较弱"},
+    {"name":"双层衬纸","cost":20,"ticks":1,"protection":0.50,"description":"兼顾本钱与防潮"},
+    {"name":"加固防潮","cost":35,"ticks":2,"protection":0.82,"description":"防护较好 · 多耗1格工期"}
+  ],
+  "routes":[
+    {"name":"搭船合运","cost":10,"ticks":2,"exposure":1.20,"description":"省船钱 · 中途多次搬运"},
+    {"name":"熟手专艇","cost":24,"ticks":1,"exposure":0.75,"description":"快1格 · 搬运较稳妥"},
+    {"name":"沿岸缓行","cost":17,"ticks":3,"exposure":0.45,"description":"少冒风浪 · 多耗工期"}
+  ]
+}

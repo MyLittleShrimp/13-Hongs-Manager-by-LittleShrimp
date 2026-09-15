@@ -1,0 +1,37 @@
+# Godot generates these locally. Keep .gd.uid and PNG .import settings in Git.
+**/.godot/
+**/.DS_Store
+**/Thumbs.db
+**/desktop.ini
+
+# Downloaded runtimes and temporary installers.
+/tools/godot/
+/tools/video_runtime/
+/tools/video_temp/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Builds, movie masters, screenshots, runtime data and old local snapshots.
+# Curated documentation screenshots are stored in docs/images/.
+/build/
+/tmp/
+/artifacts/
+/output/
+/archive/
+/runtime-data/
+*.log
+
+# Local settings and credentials.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.godot/extension_list.cfg
+export_credentials.cfg
+/.codex/
+/.agents/
