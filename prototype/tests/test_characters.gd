@@ -13,7 +13,10 @@ func _initialize() -> void:
 	call_deferred("run")
 
 func tap(id: String, native_touch: bool = true) -> void:
+	var before: String = app.model.stage
 	await app._tour_tap(id, native_touch)
+	if before == "bargain" and app.model.stage == "bargain_result":
+		for i in 2: await app._tour_tap("choice_0", native_touch)
 
 func snapshot() -> Dictionary:
 	var state := {}

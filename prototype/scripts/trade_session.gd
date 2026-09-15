@@ -38,6 +38,10 @@ var roast_plan: Dictionary = {}
 var roast_step := 0
 var work_tool := -1
 var approach := "独立接单"
+var market_topics: Array[int] = []
+var market_topic := -1
+var bargain_result: Dictionary = {}
+var bargain_beat := 0
 
 const ROAST_PLANS := [
 	{"name":"常火匀焙", "cost":20, "ticks":2, "gain":12},
@@ -71,6 +75,10 @@ func reset(seed_value: int = -1) -> void:
 	roast_step = 0
 	work_tool = -1
 	approach = "独立接单"
+	market_topics.clear()
+	market_topic = -1
+	bargain_result.clear()
+	bargain_beat = 0
 	cash = int(data.initial_cash)
 	ticks = 0
 	contract = {}
@@ -136,6 +144,18 @@ func _choose_impl(index: int) -> bool:
 			stage = "bargain"
 			last_line = "这批%s，十箱共%d。你看，怎么成交？" % [supplier.name, supplier.quote]
 		"bargain": return _buy(index)
+		"bargain_chat":
+			if index in market_topics: return false
+			market_topics.append(index)
+			market_topic = index
+			stage = "bargain"
+			_event("茶市问话", ["问清了货源与品质起伏。", "问清了取货时间与议价等待。", "问清了茶样与整批货色的区别。"][index])
+		"bargain_result":
+			if index != 0: return false
+			if bargain_beat == 0:
+				bargain_beat = 1
+			else:
+				stage = "inspection"
 		"inspection": return _inspect(index)
 		"inspection_work":
 			if index in inspection_marks: return false
@@ -190,14 +210,18 @@ func _buy(index: int) -> bool:
 	# Check worst payable cost before drawing: an invalid action must never reroll.
 	if cash < price + _reserved: return false
 	var outcome := "按报价成交，没有额外耽搁。"
+	var success := false
+	var delay := 0
 	if index > 0:
 		var chance := 0.70 if index == 1 else 0.35
 		if rng.randf() < chance:
+			success = true
 			var saving := int(round(price * (0.08 if index == 1 else 0.18)))
 			price -= saving
 			outcome = "茶商让了%d点，这次议价成了。" % saving
 		else:
-			ticks += 1 if index == 1 else 2
+			delay = 1 if index == 1 else 2
+			ticks += delay
 			outcome = "茶商不肯让价，照原价成交；议价耽搁了%d格。" % (1 if index == 1 else 2)
 	_book("purchase", str(supplier.name), -price)
 	ticks += int(supplier.ticks)
@@ -205,7 +229,21 @@ func _buy(index: int) -> bool:
 	if rng.randf() < float(supplier.bad_batch):
 		quality = maxi(25, quality - rng.randi_range(15, 30))
 	_event("采买成交", outcome)
-	stage = "inspection"
+	bargain_result = {"method":index, "success":success, "quote":int(supplier.quote),
+		"paid":price, "saving":int(supplier.quote) - price, "delay":delay,
+		"pickup_ticks":int(supplier.ticks)}
+	bargain_beat = 0
+	stage = "bargain_result"
+	return true
+
+func market_conversation(open: bool, expected_revision: int = -1) -> bool:
+	if expected_revision >= 0 and expected_revision != revision: return false
+	if open and stage == "bargain":
+		stage = "bargain_chat"
+	elif not open and stage == "bargain_chat":
+		stage = "bargain"
+	else: return false
+	revision += 1
 	return true
 
 func _inspect(index: int) -> bool:
@@ -472,6 +510,8 @@ func available(index: int) -> bool:
 	if index < 0 or index > 2: return false
 	match stage:
 		"market": return cash >= quotes[index] + _reserved
+		"bargain": return cash >= int(supplier.quote) + _reserved
+		"bargain_chat": return not index in market_topics
 		"inspection": return cash >= [0, 8, 18][index]
 		"inspection_work": return not index in inspection_marks
 		"roast_plan": return cash >= int(ROAST_PLANS[index].cost)
@@ -488,11 +528,12 @@ func available(index: int) -> bool:
 			return index < 2 and cash >= [8, 0][index]
 		"intro", "shipment_review", "acceptance": return index < 2
 		"packing_work": return index == 0 and work_tool == packing_step
-		"packing_seal", "voyage_report", "arrival", "result": return index == 0
+		"bargain_result", "packing_seal", "voyage_report", "arrival", "result": return index == 0
 		"attract", "epilogue": return false
 	return true
 
 func unavailable_reason(index: int) -> String:
+	if stage == "bargain_chat" and index in market_topics: return "已经问过，可换个话题"
 	if stage == "remedy" and index > 0:
 		if quality >= 100: return "已到上限"
 		if index == 1 and rework_count >= 2: return "已复焙两次"
@@ -500,7 +541,7 @@ func unavailable_reason(index: int) -> String:
 	return "资金不足"
 
 func location() -> String:
-	if stage in ["market", "bargain"]: return "market"
+	if stage in ["market", "bargain", "bargain_chat", "bargain_result"]: return "market"
 	if stage in ["inspection", "inspection_work", "remedy", "shipment_review"]: return "inspection"
 	if stage in ["roast_plan", "roasting_work"]: return "roasting"
 	if stage in ["packing", "packing_work", "packing_seal"]: return "packing"
@@ -510,7 +551,7 @@ func location() -> String:
 
 func chapter() -> int:
 	if stage in ["attract", "intro", "contract"]: return 0
-	if stage in ["market", "bargain", "inspection", "inspection_work", "remedy", "shipment_review", "roast_plan", "roasting_work"]: return 1
+	if stage in ["market", "bargain", "bargain_chat", "bargain_result", "inspection", "inspection_work", "remedy", "shipment_review", "roast_plan", "roasting_work"]: return 1
 	if stage in ["packing", "packing_work", "packing_seal"]: return 2
 	if stage in ["dock", "voyage", "voyage_report"]: return 3
 	return 4

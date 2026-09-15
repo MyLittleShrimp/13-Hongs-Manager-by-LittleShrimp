@@ -55,6 +55,7 @@ func _ready() -> void:
 	game.test_mode = true
 	game.logger.enabled = false
 	game.ambient_enabled = false
+	game.music_player.set_enabled(false)
 	footage = TextureRect.new()
 	footage.texture = game_view.get_texture()
 	footage.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -75,7 +76,7 @@ func _ready() -> void:
 	_set_shot(0)
 	print("PROMO_SCENARIOS: profit_seed=%d loss_seed=%d; all outcomes resolved by game model" % [seed_profit,seed_loss])
 	var manifest := {"fps":FPS,"seconds":60,"width":1920,"height":1080,"audio":false,
-		"game_version":"0.4","profit_seed":seed_profit,"loss_seed":seed_loss,"shots":SHOTS,
+		"game_version":"0.6","profit_seed":seed_profit,"loss_seed":seed_loss,"shots":SHOTS,
 		"notes":"Curated real seeded playthroughs; shots condensed for trailer. No fabricated prices, damage or profits."}
 	var output_dir := OS.get_environment("HONGS_PROMO_OUTPUT")
 	if output_dir == "": output_dir = ProjectSettings.globalize_path("res://../artifacts/promo-v1")
@@ -108,7 +109,7 @@ func _at(seed_value: int, target: String, risky: bool):
 		match t.stage:
 			"intro": ok = t.choose(0)
 			"contract": ok = t.choose(2)
-			"market", "bargain": ok = t.choose(0)
+			"market", "bargain", "bargain_result": ok = t.choose(0)
 			"inspection": ok = t.choose(2)
 			"inspection_work":
 				for i in 3: assert(t.choose(i))

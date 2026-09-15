@@ -24,6 +24,9 @@ func act(t, index: int) -> void:
 	var random_state: int = t.rng.state
 	verify(not t.choose(index, stage, ticket), "Same callback is idempotent even within remedy")
 	verify(t.cash == balance and t.rng.state == random_state, "Duplicate does not spend or reroll")
+	if stage == "bargain":
+		act(t, 0)
+		act(t, 0)
 	if t.stage == "inspection_work" and stage == "inspection":
 		for i in t.inspection_level + 1: act(t, i)
 		verify(t.finish_inspection(t.revision), "Confirm observed inspection")

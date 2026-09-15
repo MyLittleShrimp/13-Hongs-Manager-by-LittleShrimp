@@ -7,6 +7,12 @@ var speaking := false
 var walking := false
 var base_scale := Vector2.ONE
 var motion: Tween
+var reaction := ""
+var reaction_age := 0.0
+
+func react(kind: String) -> void:
+	reaction = kind
+	reaction_age = 0
 
 static func resolve_texture(path: String) -> Texture2D:
 	if path.begins_with("res://") and ResourceLoader.exists(path):
@@ -40,10 +46,21 @@ func set_profile(value: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	age += delta
+	reaction_age += delta
 	if body.texture == null: return
 	body.scale = base_scale * Vector2(1, 1 + sin(age * 2.3) * 0.004)
 	body.position.y = -abs(sin(age * 12)) * 5 if walking else sin(age * 2.3) * 1.2
 	body.rotation = sin(age * (12 if walking else 3)) * (0.012 if walking else (0.003 if speaking else 0.0))
+	if reaction_age < 1.1:
+		var pulse := sin(reaction_age / 1.1 * PI)
+		if reaction == "agree":
+			body.rotation += pulse * 0.024
+			body.position.y += pulse * 6
+		elif reaction == "refuse":
+			body.rotation += sin(reaction_age * 16) * pulse * 0.019
+		elif reaction == "receive":
+			body.rotation -= pulse * 0.026
+			body.position.y -= pulse * 3
 
 func walk_to(destination: Vector2, seconds: float = 0.65) -> void:
 	if motion: motion.kill()

@@ -8,6 +8,8 @@ const PackingEffect = preload("res://scripts/packing_effect.gd")
 const WorkshopEffect = preload("res://scripts/workshop_effect.gd")
 const SessionLog = preload("res://scripts/session_log.gd")
 const MusicPlaylist = preload("res://scripts/music_playlist.gd")
+const MarketStory = preload("res://scripts/market_story.gd")
+const MarketExchange = preload("res://scripts/market_exchange.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -62,6 +64,7 @@ var music_player
 var music_title_label: Label
 var last_choice := ""
 var rendered_stage := ""
+var market_exchange
 
 func _ready() -> void:
 	font_body = SystemFont.new()
@@ -105,6 +108,10 @@ func _ready() -> void:
 	tool_sprite = Sprite2D.new()
 	world.add_child(tool_sprite)
 	tool_sprite.visible = false
+	market_exchange = MarketExchange.new()
+	market_exchange.font = font_body
+	world.add_child(market_exchange)
+	market_exchange.visible = false
 	sound_player = AudioStreamPlayer.new()
 	add_child(sound_player)
 	music_player = MusicPlaylist.new()
@@ -319,7 +326,8 @@ func _update_world() -> void:
 		if not changed and rendered_stage == "attract":
 			player_actor.position = Vector2(250, 790)
 			player_actor.walk_to(Vector2(510, 790), 0.8)
-		player_actor.speaking = model.stage in ["intro", "remedy"]
+		player_actor.speaking = model.stage in ["intro", "remedy", "bargain_chat"]
+		if model.stage == "bargain_result": player_actor.speaking = model.bargain_beat == 1
 		npc_actor.speaking = not player_actor.speaking
 		if place in ["inspection", "roasting", "vessel"]:
 			if player_actor.motion: player_actor.motion.kill()
@@ -332,7 +340,10 @@ func _update_world() -> void:
 	atmosphere.place = place
 	atmosphere.wet = model.weather > 0 or model.cargo_event in ["squall", "leak"]
 	atmosphere.storm = model.cargo_event == "squall"
-	crate.visible = place in ["packing", "dock"]
+	crate.visible = place in ["market", "packing", "dock"]
+	if model.stage != "bargain_result":
+		market_exchange.active = false
+		market_exchange.visible = false
 	packing_effect.visible = model.stage in ["packing_work", "packing_seal"]
 	packing_effect.sealed = model.stage == "packing_seal"
 	packing_effect.position = Vector2(967, 557)
@@ -353,7 +364,10 @@ func _update_world() -> void:
 	crate.position = Vector2(790, 540)
 	crate.size = Vector2(350, 235)
 	crate.texture = load("res://assets/props/tea_crate.png")
-	if model.stage in ["packing_work", "packing_seal"]:
+	if place == "market":
+		crate.position = Vector2(740, 500)
+		crate.size = Vector2(440, 293)
+	elif model.stage in ["packing_work", "packing_seal"]:
 		crate.texture = load("res://assets/props/tea_crate_open.png") if model.stage == "packing_work" else load("res://assets/props/tea_crate.png")
 		crate.position = Vector2(720, 462)
 		crate.size = Vector2(490, 327)
@@ -411,25 +425,34 @@ func _render_attract() -> void:
 	_button(page, "start", "接过账本，开张", Rect2(153, 776, 640, 100), _start, true)
 	_label(page, "你的化身 · " + str(avatar_profile.display_name), Rect2(1120, 904, 620, 60), 34, PAPER, true)
 	_button(page, "avatar", "阿砚 / 阿宁 · 切换角色", Rect2(1150, 978, 500, 73), _show_character_picker)
-	_label(page, "v0.5 单机茶叶篇  /  鼠标或触摸  /  剧情人物与数值为游戏设定", Rect2(105, 980, 980, 40), 23, PAPER)
+	_label(page, "v0.6 单机茶叶篇  /  鼠标或触摸  /  剧情人物与数值为游戏设定", Rect2(105, 980, 980, 40), 23, PAPER)
 
 func _story() -> Array:
 	var name := str(avatar_profile.display_name)
 	match model.stage:
 		"intro": return ["陈叔 · 行号老管事", name + "，黄埔的商船就要启航了。外商托行号采办十箱茶，这回让你独当一面。"]
 		"contract": return ["陈叔", model.last_line + " 三种茶单，交期和货色要求各不相同。"]
-		"market": return ["梁老板 · 茶商", "来得巧，三处都有货。今日报价已经写好；便宜的茶，货色可未必齐整。"]
-		"bargain": return ["梁老板", model.last_line]
-		"inspection": return ["梁老板", model.last_line + " 茶样已摆上桌，验到什么程度，由你决定。"]
+		"market": return ["梁老板 · 茶商", MarketStory.welcome(model)]
+		"bargain": return ["梁老板", MarketStory.before_offer(model)]
+		"bargain_chat": return [name, "梁老板，先不急着定价。我想问清这批货，再掂量怎么成交。"]
+		"bargain_result":
+			var reply: Array = MarketStory.reply(model)
+			return [name if reply[0] == "player" else "梁老板", reply[1]]
+		"inspection": return ["梁老板", MarketStory.inspection_open(model)]
 		"inspection_work": return ["梁老板", model.last_line]
 		"roast_plan": return ["陈叔", model.last_line]
 		"roasting_work": return ["陈叔", model.last_line]
-		"remedy": return [name, model.last_line]
+		"remedy":
+			var just_inspected: bool = not model.events.is_empty() and model.events[-1].label in ["未验货", "抽样结果", "复核结果"]
+			return [name, MarketStory.inspection_response(model) if just_inspected else model.last_line]
 		"shipment_review": return ["陈叔", "这批货仍有不达标风险。可以回去处理；也可以装运，到货后再决定是否接受折价。"]
 		"packing": return ["陈叔", ("外头云低，箱里的防潮不能轻看。" if model.weather > 0 else "天晴也得防舱底潮气。") + " 选好包装，我们一起封箱。"]
 		"packing_work": return ["陈叔", ["先取下方衬料，再点箱口铺进去。隔开箱壁，少一分潮气。", "取来茶货，再点箱口装入。码放平整，路上才少些晃动。", "取来箱盖和绳，再点箱口封好。这十箱茶，就要交给船家了。"][model.packing_step]]
 		"packing_seal": return ["陈叔", model.last_line]
-		"dock": return ["阿顺 · 船家", "%s已经备好。%s" % [model.packaging.name, "工期只剩%d格，路线得细算。" % maxi(0, int(model.contract.deadline) - int(model.ticks)) if model.ticks >= model.contract.deadline - 3 else "走得快、走得稳，价钱和风险各不相同。"]]
+		"dock":
+			if model.bargain_result.get("delay", 0) > 0:
+				return ["阿顺 · 船家", "茶市多等了%d格？现在船期还剩%d格。快船、合运还是沿岸走，你得把后面的风浪也算上。" % [model.bargain_result.delay, maxi(0, int(model.contract.deadline) - int(model.ticks))]]
+			return ["阿顺 · 船家", "%s已经备好。%s" % [model.packaging.name, "工期只剩%d格，路线得细算。" % maxi(0, int(model.contract.deadline) - int(model.ticks)) if model.ticks >= model.contract.deadline - 3 else "走得快、走得稳，价钱和风险各不相同。"]]
 		"voyage": return ["阿顺", model.last_line]
 		"voyage_report": return ["阿顺", model.last_line + " 靠岸后，交接人还要复核货色和船期。"]
 		"acceptance": return ["怀特 · 商船交接人", model.last_line]
@@ -449,7 +472,10 @@ func _choices() -> Array:
 			for i in 3:
 				var s: Dictionary = model.data.suppliers[i]
 				options.append([s.name + "  %d点" % model.quotes[i], "%d格 · %s" % [s.ticks, s.description]])
-		"bargain": return [["照价成交", "不耽搁 · 按当前报价"], ["温和议价", "70%省8% · 失败多耗1格"], ["坚持压价", "35%省18% · 失败多耗2格"]]
+		"bargain": return [["照这个价，早些取货", "照价成交 · 不额外耗时"], ["十箱一起收，匀我一点", "70%省8% · 失败原价、多耗1格"], ["这口价，还得再让些", "35%省18% · 失败原价、多耗2格"]]
+		"bargain_chat": return [["这批货从哪里来？", "问货源 · 了解品质起伏"], ["赶得上我的船期吗？", "问工期 · 算取货与还价时间"], ["茶样能代表整批吗？", "问货色 · 了解验货的作用"]]
+		"bargain_result":
+			return [["接过货单", "十箱货 · 把价钱和工期记清"]] if model.bargain_beat == 0 else [["请带路，去验茶", "前往验茶台 · 再定验货深度"]]
 		"inspection": return [["凭样收货", "0点 / 0格 · 货色仍未知"], ["抽样开箱", "8点 / 1格 · 获得货色区间"], ["逐箱复核", "18点 / 2格 · 了解准确货色"]]
 		"remedy": return [["准备装运", "不加支出 · 先检查货色风险"], ["%s · 20点起 / 1—3格" % ("再次复焙" if model.rework_count > 0 else "复焙整理"), "常火：" + model.remedy_preview(12)], ["补价换货 · 34点 / 2格", model.remedy_preview(24)]]
 		"roast_plan":
@@ -507,6 +533,8 @@ func _render_story() -> void:
 				_choose.bind(i, expected, model.revision), count == 1, not enabled)
 	if model.stage in ["packing_work", "roasting_work"]:
 		_render_workbench()
+	elif model.stage in ["market", "bargain", "bargain_chat", "bargain_result"]:
+		_render_market_counter()
 	elif model.stage == "inspection_work":
 		_render_inspection()
 	elif model.stage == "roast_plan":
@@ -622,6 +650,33 @@ func _fulfillment_text() -> String:
 	if r.contract_met: return "原单达标 · 如约交付"
 	return "原单未达标 · " + ("数量不足" if r.delivered < 10 else "迟交")
 
+func _render_market_counter() -> void:
+	var receipt := _panel(page, Rect2(704, 287, 508, 255), PAPER, GOLD)
+	if model.stage == "market":
+		_label(receipt, "梁记茶庄 · 今日有茶", Rect2(30, 14, 448, 60), 33, INK, true)
+		_label(receipt, "十箱茶，三处货源", Rect2(30, 87, 448, 60), 36, INK)
+		_label(receipt, "取货越快，本钱未必越少。\n先挑货，再同梁老板谈价。", Rect2(30, 162, 448, 73), 25, INK)
+		return
+	if model.stage == "bargain_result":
+		var r: Dictionary = model.bargain_result
+		_label(receipt, "成交货单 · 十箱茶", Rect2(30, 12, 448, 51), 32, INK, true)
+		_label(receipt, "实付 %d 点" % r.paid, Rect2(30, 71, 448, 69), 47, INK)
+		_label(receipt, "让利 %d 点  ·  还价多耗 %d 格" % [r.saving, r.delay], Rect2(30, 147, 448, 40), 24, INK)
+		_label(receipt, "取货另耗%d格 · 茶货尚未验明" % r.pickup_ticks, Rect2(30, 196, 448, 40), 24, INK)
+	else:
+		_label(receipt, str(model.supplier.name) + " · 十箱", Rect2(30, 12, 448, 51), 32, INK, true)
+		_label(receipt, "报价 %d 点" % model.supplier.quote, Rect2(30, 71, 448, 69), 47, INK)
+		_label(receipt, "取货 %d 格  ·  货色待验" % model.supplier.ticks, Rect2(30, 149, 448, 40), 25, INK)
+		_label(receipt, "谈价前，先把想问的问清。", Rect2(30, 198, 448, 37), 23, INK)
+		_button(page, "market_talk", "先问一句 · 不耗工期" if model.stage == "bargain" else "回到议价", Rect2(757, 704, 406, 72), _market_conversation.bind(model.stage == "bargain", model.revision))
+
+func _market_conversation(open: bool, revision: int) -> void:
+	if overlay_kind != "" or (transition_guard > 0 and not test_mode): return
+	if model.market_conversation(open, revision):
+		idle_seconds = 0
+		_render()
+		transition_guard = 0.25
+
 func _render_result() -> void:
 	var r: Dictionary = model.result
 	var card := _panel(page, Rect2(635, 179, 686, 587), PAPER, GOLD)
@@ -659,7 +714,7 @@ func _render_epilogue() -> void:
 	_label(page, ending[2], Rect2(631, 540, 705, 117), 28, GOLD)
 	_panel(page, Rect2(40, 800, 1840, 112), DARK, GOLD)
 	_label(page, str(avatar_profile.display_name), Rect2(66, 813, 285, 82), 29, GOLD)
-	_label(page, "陈叔，这一趟的教训，我记下了。" if model.result.profit < 0 else "从接茶单到交清账，原来每一步都算数。", Rect2(382, 813, 1320, 82), 32)
+	_label(page, MarketStory.ending_echo(model), Rect2(382, 813, 1320, 82), 30)
 	_button(page, "again", "再做一单 · 新行情", Rect2(335, 934, 592, 112), func(): _end_session("replay"); _start())
 	_button(page, "finish", "合上账本，完成体验", Rect2(950, 934, 640, 112), func(): _end_session("completed"), true)
 	_label(page, "知识依据：香港艺术馆「外销艺术」藏品说明；人物、场景、故事与数值为艺术化设定。", Rect2(405, 745, 1160, 37), 20, PAPER)
@@ -669,7 +724,7 @@ func _start() -> void:
 	if model.start():
 		idle_seconds = 0
 		session_seconds = 0
-		logger.record("start", model.session_id, {"version":"0.5", "character":avatar_profile.get("id", "custom")})
+		logger.record("start", model.session_id, {"version":"0.6", "character":avatar_profile.get("id", "custom")})
 		_render()
 		transition_guard = 0.4
 
@@ -681,6 +736,16 @@ func _choose(index: int, expected: String, expected_revision: int = -1) -> void:
 		logger.record("choice", model.session_id, {"stage":expected, "choice":index, "cash_change":model.cash - old_cash, "ticks":model.ticks})
 		idle_seconds = 0
 		_render()
+		if expected == "bargain" or (expected == "bargain_result" and model.stage == "bargain_result"):
+			var receiving: bool = expected == "bargain_result"
+			market_exchange.play_exchange(int(model.bargain_result.paid), receiving)
+			player_actor.react("receive" if receiving else "agree")
+			npc_actor.react("refuse" if model.bargain_result.delay > 0 and not receiving else "agree")
+			player_actor.walk_to(Vector2(580 if receiving else 510, 790), 0.5)
+			npc_actor.walk_to(Vector2(1390 if model.bargain_result.delay > 0 else 1315, 790), 0.5)
+			transition_guard = 1.25
+		elif expected == "bargain_chat":
+			npc_actor.react("agree")
 		if expected == "inspection_work": workshop_effect.play_at(Vector2(680 + index * 310, 545))
 		if expected in ["packing_work", "roasting_work"] and model.stage == expected:
 			if tool_motion: tool_motion.kill()

@@ -35,6 +35,11 @@ func tap(id: String, use_touch: bool = true) -> void:
 	var before: String = app.model.stage
 	if id == "pack_action": await app._tour_tap("tool_%d" % app.model.packing_step, use_touch)
 	await app._tour_tap(id, use_touch)
+	if before == "bargain" and app.model.stage == "bargain_result":
+		for i in 2:
+			await process_frame
+			layout(app.page)
+			await app._tour_tap("choice_0", use_touch)
 	if before == "inspection" and app.model.stage == "inspection_work":
 		await process_frame
 		layout(app.page)

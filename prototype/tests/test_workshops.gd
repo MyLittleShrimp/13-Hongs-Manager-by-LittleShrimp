@@ -15,6 +15,7 @@ func purchased(seed_value: int = 121):
 	t.reset(seed_value)
 	t.start()
 	for i in [0,2,0,0]: verify(t.choose(i), "Reach purchased tea")
+	for i in 2: verify(t.choose(0), "Complete merchant exchange")
 	t.quality = 72
 	return t
 

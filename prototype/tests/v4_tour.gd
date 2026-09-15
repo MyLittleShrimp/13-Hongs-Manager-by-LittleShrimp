@@ -3,7 +3,10 @@ extends RefCounted
 var app
 
 func tap(id: String) -> void:
+	var before: String = app.model.stage
 	await app._tour_tap(id)
+	if before == "bargain" and app.model.stage == "bargain_result":
+		for i in 2: await app._tour_tap("choice_0")
 
 func capture(id: String) -> void:
 	await app._capture(id)
