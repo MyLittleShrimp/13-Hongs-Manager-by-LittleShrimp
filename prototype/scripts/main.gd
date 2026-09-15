@@ -7,6 +7,7 @@ const Atmosphere = preload("res://scripts/atmosphere.gd")
 const PackingEffect = preload("res://scripts/packing_effect.gd")
 const WorkshopEffect = preload("res://scripts/workshop_effect.gd")
 const SessionLog = preload("res://scripts/session_log.gd")
+const MusicPlaylist = preload("res://scripts/music_playlist.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -57,6 +58,8 @@ var selected := -1
 var toast_text := ""
 var ambient_enabled := false
 var sound_player: AudioStreamPlayer
+var music_player
+var music_title_label: Label
 var last_choice := ""
 var rendered_stage := ""
 
@@ -104,6 +107,10 @@ func _ready() -> void:
 	tool_sprite.visible = false
 	sound_player = AudioStreamPlayer.new()
 	add_child(sound_player)
+	music_player = MusicPlaylist.new()
+	music_player.output_suppressed = test_mode
+	add_child(music_player)
+	music_player.track_changed.connect(_update_music_title)
 	_render()
 	if screenshot_mode: call_deferred("_run_ui_tour")
 
@@ -135,7 +142,7 @@ func _process(delta: float) -> void:
 	if not bool(settings.get("kiosk_mode", false)): return
 	idle_seconds += delta
 	var limit := float(settings.reset_seconds)
-	if model.stage == "epilogue" or overlay_kind in ["help", "ledger", "history", "avatar", "support"]:
+	if model.stage == "epilogue" or overlay_kind in ["help", "ledger", "history", "avatar", "support", "audio"]:
 		limit = float(settings.reading_reset_seconds)
 	elif model.stage == "result":
 		limit = float(settings.result_reset_seconds)
@@ -371,7 +378,7 @@ func _header() -> void:
 		_label(page, "待还 %d" % model.debt_due(), Rect2(1080, 34, 175, 56), 25, GOLD)
 	_button(page, "ledger", "账本", Rect2(1270, 29, 130, 68), _show_ledger)
 	_button(page, "help", "帮助", Rect2(1415, 29, 130, 68), _show_help)
-	_button(page, "sound", "音效 开" if ambient_enabled else "音效 关", Rect2(1560, 29, 160, 68), func(): ambient_enabled = not ambient_enabled; _render())
+	_button(page, "sound", "声音设置", Rect2(1560, 29, 160, 68), _show_audio_settings)
 	_button(page, "exit", "结束", Rect2(1735, 29, 132, 68), _show_exit)
 	var place_name: String = {"counter":"行号 · 账房", "market":"茶市 · 梁记茶庄", "inspection":"茶庄 · 验茶台", "roasting":"货栈 · 焙茶间", "packing":"货栈 · 装箱间", "dock":"江岸 · 驳运码头", "vessel":"珠江 · 货艇上"}[current_location]
 	_panel(page, Rect2(40, 134, 420, 94), DARK)
@@ -394,6 +401,7 @@ func _header() -> void:
 	idle_hint.visible = false
 
 func _render_attract() -> void:
+	_button(page, "sound", "声音设置", Rect2(1650, 40, 220, 72), _show_audio_settings)
 	_panel(page, Rect2(95, 144, 815, 775), Color(0.06, 0.13, 0.095, 0.86), Color("9b885f"))
 	_label(page, "广 州 十 三 行", Rect2(150, 185, 650, 70), 35, GOLD)
 	_label(page, "茶船将发", Rect2(144, 285, 720, 140), 102, PAPER, true)
@@ -735,6 +743,49 @@ func _close_overlay() -> void:
 
 func _show_help() -> void:
 	_modal("陈叔的生意经", "货色、数量、交期都满足，原单才算达标；赚到钱也可能未达标。\n\n验茶：抽样查看两项，复核查看三项，再点「记下验茶结果」。\n复焙：先选火候；再取工具、点操作处。最多2次，不比手速。\n装箱：依次取衬料、茶货、箱盖与绳，再点箱口。\n\n现金为零仍可借款一次，或赊箱、赊运，最后还账。\n货色不足须选择折价或转售。所有补救都可能增加成本。\n\n单机模式不会因停留而清空。F11切换全屏；Esc打开结束菜单。", "help", 25)
+
+func _show_audio_settings() -> void:
+	var panel := _modal("声音设置", "", "audio")
+	music_title_label = _label(panel, "", Rect2(50, 135, 1060, 65), 31, INK)
+	_update_music_title(music_player.current_title())
+	_label(panel, "Main Theme → 13 Hongs → 循环\n进入游戏、切换场景和再做一单时，音乐会接着播放。", Rect2(50, 218, 1060, 95), 26, INK)
+	_button(panel, "music_toggle", "背景音乐 开" if music_player.enabled else "背景音乐 关", Rect2(50, 341, 510, 84), _toggle_music, true)
+	_button(panel, "effects_toggle", "点击音效 开" if ambient_enabled else "点击音效 关", Rect2(584, 341, 526, 84), _toggle_effects)
+	_label(panel, "音乐音量", Rect2(50, 470, 210, 60), 28, INK)
+	var slider := HSlider.new()
+	slider.name = "MusicVolume"
+	panel.add_child(slider)
+	slider.position = Vector2(270, 470)
+	slider.size = Vector2(840, 60)
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.step = 5
+	slider.value = music_player.volume_percent
+	slider.accessibility_name = "背景音乐音量"
+	slider.value_changed.connect(music_player.set_volume_percent)
+	# The game uses native touch events, with mouse emulation disabled.
+	slider.gui_input.connect(func(event: InputEvent):
+		if (event is InputEventScreenTouch and event.pressed) or event is InputEventScreenDrag:
+			var inset := slider.get_theme_icon("grabber").get_width() * 0.5
+			slider.value = clampf((event.position.x - inset) / (slider.size.x - inset * 2), 0, 1) * 100
+			slider.accept_event()
+	)
+	_label(panel, "关闭音乐会暂停，重新开启会从刚才的位置继续。", Rect2(50, 547, 1060, 53), 24, INK)
+
+func _update_music_title(title: String) -> void:
+	if overlay_kind == "audio" and is_instance_valid(music_title_label):
+		music_title_label.text = "正在播放：" + title if music_player.enabled else "已暂停：" + title
+
+func _toggle_music() -> void:
+	if overlay_kind != "audio": return
+	music_player.set_enabled(not music_player.enabled)
+	ui_buttons.music_toggle.text = "背景音乐 开" if music_player.enabled else "背景音乐 关"
+	_update_music_title(music_player.current_title())
+
+func _toggle_effects() -> void:
+	if overlay_kind != "audio": return
+	ambient_enabled = not ambient_enabled
+	ui_buttons.effects_toggle.text = "点击音效 开" if ambient_enabled else "点击音效 关"
 
 func _show_journey() -> void:
 	var text := "开张：" + str(model.approach) + "。\n\n"

@@ -8,6 +8,13 @@
 
 更多版本：[正式介绍与仓库简介](docs/游戏介绍.md)。
 
+## 背景音乐
+
+- 启动时播放《茶船将发 · Main Theme》（约2分21秒），播完接《茶船将发 · 13 Hongs》（约2分28秒），两首依次循环。
+- 选择角色、开始经营、切换场景、再做一单和返回开场均保持播放进度。
+- 开场与游戏顶部的「声音设置」可暂停／续播音乐、调节音量，或单独开关点击音效。
+- 默认音乐开启、音量35%，点击音效关闭；本次启动内保留设置。音乐文件由用户提供，原始MP3已复制进工程。
+
 ## v0.5 男女主角选择
 
 - 在开场右下角人物下方，选择男主角阿砚或女主角阿宁。
@@ -114,6 +121,7 @@ python tools/run_godot.py --headless --script res://tests/test_trade.gd
 python tools/run_godot.py --headless --script res://tests/test_workshops.gd
 python tools/run_godot.py --headless --script res://tests/test_ui.gd -- --self-test
 python tools/run_godot.py --headless --script res://tests/test_characters.gd -- --self-test
+python tools/run_godot.py --headless --script res://tests/test_music.gd -- --self-test
 python tools/run_godot.py --headless --script res://tests/check_assets.gd
 python tools/run_godot.py --resolution 1920x1080 --audio-driver Dummy -- --ui-tour
 ```

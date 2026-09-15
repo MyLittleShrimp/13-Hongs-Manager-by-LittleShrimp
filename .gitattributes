@@ -15,4 +15,5 @@
 *.jpg -text
 *.jpeg -text
 *.mp4 -text
+*.mp3 -text
 *.zip -text

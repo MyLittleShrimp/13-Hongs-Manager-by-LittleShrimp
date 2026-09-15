@@ -228,4 +228,6 @@ func run() -> void:
 	await tap("confirm_exit", false)
 	check(app.model.stage == "attract", "Mouse exits")
 	print("V4_UI_PASS: %d checks; touch, modal, repeat treatment, credit, deferred fallback, settlement, layout." % assertions)
+	app.queue_free()
+	await create_timer(0.3).timeout
 	quit(0)

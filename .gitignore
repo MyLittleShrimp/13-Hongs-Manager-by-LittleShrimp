@@ -21,6 +21,7 @@ venv/
 /output/
 /archive/
 /runtime-data/
+/BGM/
 *.log
 
 # Local settings and credentials.

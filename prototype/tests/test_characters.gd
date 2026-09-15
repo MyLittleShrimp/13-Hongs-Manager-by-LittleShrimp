@@ -125,4 +125,6 @@ func run() -> void:
 	await tap("start")
 	verify(app.model.stage == "intro" and app.overlay_kind == "" and app.avatar_profile.display_name == "阿砚", "Default male starts directly without opening role picker")
 	print("V5_CHARACTER_PASS: %d checks; title-only selection, direct start, preview/cancel, touch/mouse, whole female run, RNG, replay and reset." % checks)
+	app.queue_free()
+	await create_timer(0.3).timeout
 	quit(0)
