@@ -58,6 +58,7 @@ def main():
         raise SystemExit(f"Refusing to replace existing artifact: {archive}")
     work = ROOT / "build/releases" / (tag + "-" + uuid.uuid4().hex[:8])
     work.mkdir(parents=True)
+    candidate = work / archive.name
     package = work / name
     source = work / "source.zip"
     subprocess.run(["git", "archive", "--format=zip", f"--output={source}", "HEAD"], cwd=ROOT, check=True)
@@ -94,10 +95,10 @@ def main():
         if path.is_file() and ("imported" in path.relative_to(cache).parts
                                or path.name in ["uid_cache.bin", "global_script_class_cache.cfg"]):
             included.append(path.relative_to(package).as_posix())
-    with zipfile.ZipFile(archive, "x", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+    with zipfile.ZipFile(candidate, "x", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for relative in sorted(set(included)):
             z.write(package / relative, name + "/" + relative)
-    with zipfile.ZipFile(archive) as z:
+    with zipfile.ZipFile(candidate) as z:
         bad = z.testzip()
         if bad:
             raise RuntimeError("Corrupt ZIP entry: " + bad)
@@ -113,7 +114,10 @@ def main():
         results += run_game(verified, out, "unpacked-" + script, "--headless", "--script",
                             "res://tests/" + script + ".gd", "--", "--self-test")
     run_game(verified, out, "unpacked-startup", "--resolution", "1280x720", "--position",
-             "-2400,-2400", "--audio-driver", "Dummy", "--quit-after", "90")
+             "-2400,-2400", "--audio-driver", "Dummy", "--script", "res://tests/test_music.gd",
+             "--", "--self-test", "--capture-music")
+    # Only promote a final artifact after every unpacked-package check passes.
+    shutil.copy2(candidate, archive)
     checksum = digest(archive)
     (out / "SHA256SUMS.txt").write_text(f"{checksum}  {archive.name}\n", encoding="utf-8")
     info = metadata | {"archive": archive.name, "bytes": archive.stat().st_size,
