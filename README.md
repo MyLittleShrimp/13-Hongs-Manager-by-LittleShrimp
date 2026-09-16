@@ -1,8 +1,15 @@
 # 十三行 · 茶船将发
 
-**单机茶叶篇 v0.7.0｜Godot 4.7.2｜横屏鼠标／触摸**
+**单机茶叶篇 v0.7.1｜Godot 4.7.2｜横屏鼠标／触摸**
 
-**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.7.0 更新说明](docs/releases/v0.7.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.7.0-Windows-x64.zip`，包含两首背景音乐和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。
+**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.7.1 兼容修复说明](docs/releases/v0.7.1.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.7.1-Windows-x64.zip`，包含两首背景音乐和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+
+## v0.7.1 Windows 触摸兼容修复
+
+- 修复一次触摸附带鼠标事件时，音乐连续开关两次，以及收尾页被点击穿透的问题。
+- 音乐关闭同时暂停播放、静音独立音乐总线并归零输出；再次开启恢复原音量和进度。
+- 收尾、完成体验及其他按钮统一防重复与转场保护，正常鼠标／触摸操作继续可用。
+- 新增兼容启动入口：30帧、Compatibility渲染、较长的重复事件拦截窗口和本地诊断日志。仍为x64包；Snapdragon 860与Windows 10 21390.2025的真实设备回测待完成。
 
 ## 游戏介绍
 
@@ -150,6 +157,7 @@ python tools/run_godot.py --headless --script res://tests/test_characters.gd -- 
 python tools/run_godot.py --headless --script res://tests/test_music.gd -- --self-test
 python tools/run_godot.py --headless --script res://tests/test_market.gd -- --self-test
 python tools/run_godot.py --headless --script res://tests/test_performance.gd -- --self-test
+python tools/run_godot.py --headless --script res://tests/test_compatibility.gd -- --self-test --compatibility
 python tools/run_godot.py --headless --script res://tests/check_assets.gd
 python tools/run_godot.py --resolution 1920x1080 --audio-driver Dummy -- --ui-tour
 ```

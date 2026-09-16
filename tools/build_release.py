@@ -86,6 +86,7 @@ def main():
     instructions = (f"十三行 · 茶船将发 {tag}\n\n完整解压后双击「启动游戏.cmd」。\n"
                     "两首背景音乐、便携Godot与导入资源均已包含；不需要安装Python或Godot。\n"
                     "音乐默认开启，音量35%；可在「声音设置」调整。\n"
+                    "旧版Windows触摸设备请用「启动兼容模式.cmd」，F11切换全屏。\n"
                     "请使用新解压的文件夹启动，避免误开旧版本。\n")
     (package / "先看这里.txt").write_text(instructions, encoding="utf-8-sig")
     included.extend(["BUILD.json", "先看这里.txt"])
@@ -110,12 +111,16 @@ def main():
         if digest(verified / "prototype/assets/audio" / filename) != audio[filename]["sha256"]:
             raise RuntimeError("Music changed during packaging")
     results = []
-    for script in ["test_music", "test_characters", "test_performance"]:
+    for script in ["test_music", "test_characters", "test_performance", "test_compatibility"]:
         results += run_game(verified, out, "unpacked-" + script, "--headless", "--script",
                             "res://tests/" + script + ".gd", "--", "--self-test")
     run_game(verified, out, "unpacked-startup", "--resolution", "1280x720", "--position",
              "-2400,-2400", "--audio-driver", "Dummy", "--script", "res://tests/test_music.gd",
              "--", "--self-test", "--capture-music")
+    results += run_game(verified, out, "unpacked-compatibility", "--resolution", "1280x720",
+                        "--position", "-2400,-2400", "--rendering-method", "gl_compatibility",
+                        "--max-fps", "30", "--audio-driver", "Dummy", "--script",
+                        "res://tests/test_compatibility.gd", "--", "--self-test", "--compatibility", "--capture-compat")
     # Only promote a final artifact after every unpacked-package check passes.
     shutil.copy2(candidate, archive)
     checksum = digest(archive)
@@ -126,7 +131,7 @@ def main():
     (out / "build-info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     notes = (package / "docs/releases" / (tag + ".md")).read_text(encoding="utf-8")
     notes += (f"\n## 成品包验证\n\n从最终ZIP重新解压，无需编辑器导入，音乐循环、"
-              f"角色交易和计时演出专项均通过，并完成实际GPU启动检查。两首MP3的SHA256与工程原文件一致。\n\n"
+              f"角色交易、计时演出与重复触摸兼容专项均通过，并完成实际GPU启动和30帧兼容模式检查。两首MP3的SHA256与工程原文件一致。\n\n"
               f"源码提交：`{metadata['commit']}`。附件SHA256：`{checksum}`。\n")
     (out / "release-notes.md").write_text(notes, encoding="utf-8")
     print(json.dumps(info, ensure_ascii=True, indent=2), flush=True)

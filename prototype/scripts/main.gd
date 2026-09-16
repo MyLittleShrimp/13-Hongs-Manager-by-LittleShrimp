@@ -12,6 +12,7 @@ const MarketStory = preload("res://scripts/market_story.gd")
 const MarketExchange = preload("res://scripts/market_exchange.gd")
 const QualityDisplay = preload("res://scripts/quality_display.gd")
 const WorkshopPerformance = preload("res://scripts/workshop_performance.gd")
+const InputGuard = preload("res://scripts/input_guard.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -72,6 +73,8 @@ var action_busy := false
 var pending_work: Dictionary = {}
 var work_progress: ColorRect
 var app_version := str(ProjectSettings.get_setting("application/config/version", "dev"))
+var input_guard = InputGuard.new()
+var compatibility_mode := false
 
 func _ready() -> void:
 	font_body = SystemFont.new()
@@ -79,6 +82,10 @@ func _ready() -> void:
 	font_title = SystemFont.new()
 	font_title.font_names = PackedStringArray(["SimSun", "Noto Serif CJK SC", "serif"])
 	var args := OS.get_cmdline_user_args()
+	compatibility_mode = "--compatibility" in args
+	if compatibility_mode:
+		Engine.max_fps = 30
+		input_guard.suppression_ms = 1200
 	test_mode = "--self-test" in args or "--ui-tour" in args
 	screenshot_mode = "--ui-tour" in args
 	settings = JSON.parse_string(FileAccess.get_file_as_string("res://data/kiosk.json"))
@@ -90,6 +97,8 @@ func _ready() -> void:
 	if test_mode: model.reset(121)
 	logger.configure(settings)
 	logger.enabled = not test_mode
+	if compatibility_mode:
+		logger.record("environment", model.session_id, {"version":app_version, "os":OS.get_name(), "os_version":OS.get_version(), "architecture":Engine.get_architecture_name(), "engine":Engine.get_version_info().string, "max_fps":Engine.max_fps})
 	background = _texture(self, "res://assets/backgrounds/counter.png", Rect2(0, 0, 1920, 1080), true)
 	world = Control.new()
 	world.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -184,6 +193,11 @@ func _process(delta: float) -> void:
 		_show_idle()
 
 func _input(event: InputEvent) -> void:
+	if input_guard.filter_event(event):
+		if compatibility_mode and event is InputEventMouseButton:
+			logger.record("input_filtered", model.session_id, {"reason":input_guard.reason, "stage":model.stage})
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			if primary_touch == -1: primary_touch = event.index
@@ -293,9 +307,17 @@ func _button(parent: Node, id: String, value: String, box: Rect2, callback: Call
 	b.position = box.position
 	b.size = box.size
 	b.set_meta("layout_box", box)
-	b.pressed.connect(callback)
+	b.pressed.connect(_activate_button.bind(b, callback))
 	ui_buttons[id] = b
 	return b
+
+func _activate_button(button: Button, callback: Callable) -> void:
+	if not is_instance_valid(button) or not button.is_inside_tree() or button.disabled: return
+	if transition_guard > 0 and not test_mode: return
+	if not input_guard.allow_activation(button.get_instance_id()): return
+	if compatibility_mode:
+		logger.record("button", model.session_id, {"id":str(button.name), "source":input_guard.source, "stage":model.stage})
+	callback.call()
 
 func _render() -> void:
 	if is_instance_valid(page):
@@ -929,6 +951,7 @@ func _toggle_music() -> void:
 	music_player.set_enabled(not music_player.enabled)
 	ui_buttons.music_toggle.text = "背景音乐 开" if music_player.enabled else "背景音乐 关"
 	_update_music_title(music_player.current_title())
+	if compatibility_mode: logger.record("music", model.session_id, {"enabled":music_player.enabled, "paused":music_player.stream_paused, "volume":music_player.volume_linear})
 
 func _toggle_effects() -> void:
 	if overlay_kind != "audio": return
@@ -1069,6 +1092,9 @@ func _show_idle() -> void:
 func _tour_tap(id: String, use_touch: bool = true) -> void:
 	assert(ui_buttons.has(id) and is_instance_valid(ui_buttons[id]), "Missing UI button " + id)
 	var center: Vector2 = ui_buttons[id].get_global_rect().get_center()
+	# Test/tour mouse actions represent a deliberate device change, not driver echoes.
+	if not use_touch and input_guard.mouse_wait_ms(center) > 0:
+		await get_tree().create_timer(input_guard.mouse_wait_ms(center) / 1000.0 + 0.03).timeout
 	if use_touch:
 		var down := InputEventScreenTouch.new()
 		down.index = 0
