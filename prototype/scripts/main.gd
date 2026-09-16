@@ -71,6 +71,7 @@ var workshop_performance
 var action_busy := false
 var pending_work: Dictionary = {}
 var work_progress: ColorRect
+var app_version := str(ProjectSettings.get_setting("application/config/version", "dev"))
 
 func _ready() -> void:
 	font_body = SystemFont.new()
@@ -449,7 +450,7 @@ func _render_attract() -> void:
 	_button(page, "start", "接过账本，开张", Rect2(153, 776, 640, 100), _start, true)
 	_label(page, "你的化身 · " + str(avatar_profile.display_name), Rect2(1120, 904, 620, 60), 34, PAPER, true)
 	_button(page, "avatar", "阿砚 / 阿宁 · 切换角色", Rect2(1150, 978, 500, 73), _show_character_picker)
-	_label(page, "v0.7 单机茶叶篇  /  鼠标或触摸  /  剧情人物与数值为游戏设定", Rect2(105, 980, 980, 40), 23, PAPER)
+	_label(page, "v%s 单机茶叶篇  /  鼠标或触摸  /  剧情人物与数值为游戏设定" % app_version, Rect2(105, 980, 980, 40), 23, PAPER)
 
 func _story() -> Array:
 	var name := str(avatar_profile.display_name)
@@ -771,7 +772,7 @@ func _start() -> void:
 	if model.start():
 		idle_seconds = 0
 		session_seconds = 0
-		logger.record("start", model.session_id, {"version":"0.7", "character":avatar_profile.get("id", "custom")})
+		logger.record("start", model.session_id, {"version":app_version, "character":avatar_profile.get("id", "custom")})
 		_render()
 		transition_guard = 0.4
 

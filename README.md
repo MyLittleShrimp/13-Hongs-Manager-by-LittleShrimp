@@ -1,6 +1,8 @@
 # 十三行 · 茶船将发
 
-**单机茶叶篇 v0.7｜Godot 4.7.2｜横屏鼠标／触摸**
+**单机茶叶篇 v0.7.0｜Godot 4.7.2｜横屏鼠标／触摸**
+
+**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.7.0 更新说明](docs/releases/v0.7.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.7.0-Windows-x64.zip`，包含两首背景音乐和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。
 
 ## 游戏介绍
 
