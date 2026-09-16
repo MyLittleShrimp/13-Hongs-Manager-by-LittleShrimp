@@ -13,11 +13,11 @@
   "packing":[
     {"name":"草衬木箱","cost":8,"ticks":1,"protection":0.12,"description":"便宜轻便 · 防潮较弱"},
     {"name":"双层衬纸","cost":20,"ticks":1,"protection":0.50,"description":"兼顾本钱与防潮"},
-    {"name":"加固防潮","cost":35,"ticks":2,"protection":0.82,"description":"防护较好 · 多耗1格工期"}
+    {"name":"加固防潮","cost":35,"ticks":2,"protection":0.82,"description":"防护较好 · 多花1天"}
   ],
   "routes":[
     {"name":"搭船合运","cost":10,"ticks":2,"exposure":1.20,"description":"省船钱 · 中途多次搬运"},
-    {"name":"熟手专艇","cost":24,"ticks":1,"exposure":0.75,"description":"快1格 · 搬运较稳妥"},
-    {"name":"沿岸缓行","cost":17,"ticks":3,"exposure":0.45,"description":"少冒风浪 · 多耗工期"}
+    {"name":"熟手专艇","cost":24,"ticks":1,"exposure":0.75,"description":"快1天 · 搬运较稳妥"},
+    {"name":"沿岸缓行","cost":17,"ticks":3,"exposure":0.45,"description":"少冒风浪 · 多花时间"}
   ]
 }

@@ -4,7 +4,7 @@
 
 推送源码不会自动更新 Release 的 ZIP。每次发布新版本都需要重新构建完整包、上传附件并发布对应版本。
 
-当前发布目标为 **v0.7.1**，包含触摸兼容修复、两首背景音乐、茶市剧情和验茶／复焙演出。游戏版本号统一读取 `prototype/project.godot` 的 `config/version`。发布说明位于 `docs/releases/v0.7.1.md`。
+当前发布目标为 **v0.7.2**，包含现钱／交货天数的直观显示、触摸兼容修复、两首背景音乐、茶市剧情和验茶／复焙演出。游戏版本号统一读取 `prototype/project.godot` 的 `config/version`。发布说明位于 `docs/releases/v0.7.2.md`。
 
 在已准备便携引擎且工作区提交干净后执行：
 

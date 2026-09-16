@@ -13,6 +13,7 @@ const MarketExchange = preload("res://scripts/market_exchange.gd")
 const QualityDisplay = preload("res://scripts/quality_display.gd")
 const WorkshopPerformance = preload("res://scripts/workshop_performance.gd")
 const InputGuard = preload("res://scripts/input_guard.gd")
+const MoneyIcon = preload("res://scripts/money_icon.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -432,9 +433,10 @@ func _update_world() -> void:
 func _header() -> void:
 	_panel(page, Rect2(26, 22, 1868, 84), DARK)
 	_label(page, "十三行  /  茶船将发", Rect2(52, 30, 400, 62), 33, GOLD, true)
-	_label(page, "资金  %d 点" % model.cash if model.cash >= 0 else "缺口  %d 点" % -int(model.cash), Rect2(480, 34, 245, 56), 29)
-	var time_text := "今日第一单" if model.contract.is_empty() else "工期  %d / %d 格" % [model.ticks, model.contract.deadline]
-	_label(page, time_text, Rect2(750, 34, 315, 56), 29)
+	_money_icon(page, Rect2(475, 46, 32, 32))
+	_label(page, "现钱  %d" % model.cash if model.cash >= 0 else "缺口  %d" % -int(model.cash), Rect2(516, 34, 223, 56), 29)
+	var overdue: bool = not model.contract.is_empty() and model.ticks > model.contract.deadline
+	_label(page, _delivery_time_text(), Rect2(750, 34, 315, 56), 29, Color("f0a278") if overdue else PAPER).name = "DeliveryTime"
 	if model.debt_due() > 0:
 		_label(page, "待还 %d" % model.debt_due(), Rect2(1080, 34, 175, 56), 25, GOLD)
 	_button(page, "ledger", "账本", Rect2(1270, 29, 130, 68), _show_ledger)
@@ -456,10 +458,25 @@ func _header() -> void:
 	if not model.contract.is_empty():
 		_panel(page, Rect2(1482, 133, 400, 147), DARK)
 		_label(page, model.contract.name + " · 十箱茶", Rect2(1503, 147, 355, 38), 27, GOLD)
-		_label(page, "货色要求 %d  ·  单箱 %d 点" % [model.contract.quality, model.contract.price], Rect2(1503, 193, 355, 34), 23)
+		_label(page, "货色要求 %d  ·  单价 %d" % [model.contract.quality, model.contract.price], Rect2(1503, 193, 355, 34), 23)
 		_label(page, model.quality_report, Rect2(1503, 237, 355, 30), 23, MUTED)
 	idle_hint = _label(page, "轻触下方选项，让这笔生意继续。", Rect2(630, 745, 680, 40), 25, GOLD)
 	idle_hint.visible = false
+
+func _money_icon(parent: Node, box: Rect2) -> void:
+	var icon := MoneyIcon.new()
+	icon.position = box.position
+	icon.size = box.size
+	parent.add_child(icon)
+
+func _delivery_time_text() -> String:
+	if model.contract.is_empty(): return "等待接单"
+	var remaining: int = int(model.contract.deadline) - int(model.ticks)
+	if not model.result.is_empty():
+		return "交货逾期 %d 天" % -remaining if remaining < 0 else "交货用时 %d 天" % model.ticks
+	if remaining < 0: return "已逾期 %d 天" % -remaining
+	if remaining == 0: return "今日须交货"
+	return "距交货还剩 %d 天" % remaining
 
 func _render_attract() -> void:
 	_button(page, "sound", "声音设置", Rect2(1650, 40, 220, 72), _show_audio_settings)
@@ -501,8 +518,8 @@ func _story() -> Array:
 		"packing_seal": return ["陈叔", model.last_line]
 		"dock":
 			if model.bargain_result.get("delay", 0) > 0:
-				return ["阿顺 · 船家", "茶市多等了%d格？现在船期还剩%d格。快船、合运还是沿岸走，你得把后面的风浪也算上。" % [model.bargain_result.delay, maxi(0, int(model.contract.deadline) - int(model.ticks))]]
-			return ["阿顺 · 船家", "%s已经备好。%s" % [model.packaging.name, "工期只剩%d格，路线得细算。" % maxi(0, int(model.contract.deadline) - int(model.ticks)) if model.ticks >= model.contract.deadline - 3 else "走得快、走得稳，价钱和风险各不相同。"]]
+				return ["阿顺 · 船家", "茶市多等了%d天？%s。快船、合运还是沿岸走，你得把后面的风浪也算上。" % [model.bargain_result.delay, _delivery_time_text()]]
+			return ["阿顺 · 船家", "%s已经备好。%s" % [model.packaging.name, _delivery_time_text() + "，路线得细算。" if model.ticks >= model.contract.deadline - 3 else "走得快、走得稳，价钱和风险各不相同。"]]
 		"voyage": return ["阿顺", model.last_line]
 		"voyage_report": return ["阿顺", model.last_line + " 靠岸后，交接人还要复核货色和船期。"]
 		"acceptance": return ["怀特 · 商船交接人", model.last_line]
@@ -517,53 +534,53 @@ func _choices() -> Array:
 		"intro": return [["我来试试", "接过账本，查看订单"], ["请陈叔指点", "先听一句生意经"]]
 		"contract":
 			for c in model.data.contracts:
-				options.append([c.name + " · 迟交扣%d点/格" % c.penalty, "%d点/箱 · %d格 · 货色≥%d" % [c.price, c.deadline, c.quality]])
+				options.append([c.name + " · 逾期每天扣%d" % c.penalty, "单价%d · %d天内交货 · 货色≥%d" % [c.price, c.deadline, c.quality]])
 		"market":
 			for i in 3:
 				var s: Dictionary = model.data.suppliers[i]
-				options.append([s.name + "  %d点" % model.quotes[i], "%d格 · %s" % [s.ticks, s.description]])
+				options.append([s.name + " · 花费%d" % model.quotes[i], "取货%d天 · %s" % [s.ticks, s.description]])
 		"bargain":
 			var quote := int(model.supplier.quote)
 			return [["照这个价，早些取货", "照价成交 · 不额外耗时"],
-				["十箱一起收，匀我一点", "谈成可省 %d 点" % int(round(quote * 0.08))],
-				["这口价，还得再让些", "谈成可省 %d 点" % int(round(quote * 0.18))]]
-		"bargain_chat": return [["这批货从哪里来？", "问货源 · 了解品质起伏"], ["赶得上我的船期吗？", "问工期 · 算取货与还价时间"], ["茶样能代表整批吗？", "问货色 · 了解验货的作用"]]
+				["十箱一起收，匀我一点", "谈成可省 %d" % int(round(quote * 0.08))],
+				["这口价，还得再让些", "谈成可省 %d" % int(round(quote * 0.18))]]
+		"bargain_chat": return [["这批货从哪里来？", "问货源 · 了解品质起伏"], ["赶得上我的船期吗？", "问交期 · 算取货与还价时间"], ["茶样能代表整批吗？", "问货色 · 了解验货的作用"]]
 		"bargain_result":
-			return [["接过货单", "十箱货 · 把价钱和工期记清"]] if model.bargain_beat == 0 else [["请带路，去验茶", "前往验茶台 · 再定验货深度"]]
-		"inspection": return [["凭样收货", "0点 / 0格 · 货色仍未知"], ["抽样开箱", "8点 / 1格 · 获得货色区间"], ["逐箱复核", "18点 / 2格 · 了解准确货色"]]
-		"remedy": return [["准备装运", "不加支出 · 先检查货色风险"], ["%s · 20点起 / 1—3格" % ("再次复焙" if model.rework_count > 0 else "复焙整理"), "常火：" + model.remedy_preview(12)], ["补价换货 · 34点 / 2格", model.remedy_preview(24)]]
+			return [["接过货单", "十箱货 · 把价钱和用时记清"]] if model.bargain_beat == 0 else [["请带路，去验茶", "前往验茶台 · 再定验货深度"]]
+		"inspection": return [["凭样收货", "花费0 · 耗时0天 · 货色未知"], ["抽样开箱", "花费8 · 耗时1天 · 货色区间"], ["逐箱复核", "花费18 · 耗时2天 · 准确货色"]]
+		"remedy": return [["准备装运", "不加支出 · 先检查货色风险"], ["%s · 花费20起 · 1—3天" % ("再次复焙" if model.rework_count > 0 else "复焙整理"), "常火：" + model.remedy_preview(12)], ["补价换货 · 花费34 · 2天", model.remedy_preview(24)]]
 		"roast_plan":
 			for p in model.ROAST_PLANS:
-				options.append(["%s · %d点 / %d格" % [p.name, p.cost, p.ticks], model.remedy_preview(int(p.gain))])
+				options.append(["%s · 花费%d · %d天" % [p.name, p.cost, p.ticks], model.remedy_preview(int(p.gain))])
 		"inspection_work", "roasting_work": return []
 		"shipment_review": return [["回去再处理", "不花钱 · 不重抽货色"], ["带风险装运", "未达标时另谈价 · 可能亏本"]]
 		"packing":
 			for p in model.data.packing:
-				options.append([p.name + "  %d点" % p.cost, "%d格 · %s" % [p.ticks, p.description]])
+				options.append([p.name + " · 花费%d" % p.cost, "耗时%d天 · %s" % [p.ticks, p.description]])
 		"packing_work": return []
 		"packing_seal": return [["请阿顺点货装船", "十箱已封妥 · 前往驳运码头"]]
 		"dock":
 			for r in model.data.routes:
-				options.append([r.name + "  %d点" % r.cost, "%d格 · %s" % [r.ticks, r.description]])
+				options.append([r.name + " · 花费%d" % r.cost, "耗时%d天 · %s" % [r.ticks, r.description]])
 		"voyage":
 			var titles: Array
 			var detail: Array
 			if model.cargo_event == "squall":
 				titles = ["靠岸避风", "抢在船期前赶路", "临时加篷"]
-				detail = ["0点 / +2格", "0点 / 不加时", "12点 / +1格"]
+				detail = ["花费0 · 多用2天", "花费0 · 不加时", "花费12 · 多用1天"]
 			elif model.cargo_event == "leak":
 				titles = ["停船补漏", "加紧舀水，继续赶路"]
-				detail = ["12点 / +1格", "0点 / 不加时"]
+				detail = ["花费12 · 多用1天", "花费0 · 不加时"]
 			else:
 				titles = ["雇帮手过驳", "照常交接"]
-				detail = ["8点 / 省1格", "0点 / 不加时"]
+				detail = ["花费8 · 节省1天", "花费0 · 不加时"]
 			for i in titles.size():
 				options.append([titles[i], "%s · 损货约%d%%" % [detail[i], roundi(model.risk(i) * 100)]])
 		"arrival": return [["回行号结账", "看看这笔生意的实际盈亏"]]
 		"voyage_report": return [["靠岸交验", "点清茶箱，与商船交接人会面"]]
 		"acceptance":
 			var d: Dictionary = model.pending_delivery
-			return [["接受折价 · 原单未达标", "货款%d点（已扣迟交%d点）" % [d.due, d.penalty]], ["取消原单，转售止损", "卖得%d点 · 另付15点改单费" % d.resale_gross]]
+			return [["接受折价 · 原单未达标", "货款%d（已扣迟交%d）" % [d.due, d.penalty]], ["取消原单，转售止损", "卖得%d · 另付15改单费" % d.resale_gross]]
 	return options
 
 func _render_story() -> void:
@@ -583,8 +600,11 @@ func _render_story() -> void:
 			var enabled: bool = model.available(i)
 			if not enabled: value = str(options[i][0]) + "\n" + model.unavailable_reason(i)
 			var expected: String = model.stage
-			_button(page, "choice_%d" % i, value, Rect2(start + i * (width + 22), 931, width, 115),
+			var button: Button = _button(page, "choice_%d" % i, value, Rect2(start + i * (width + 22), 931, width, 115),
 				_choose.bind(i, expected, model.revision), count == 1, not enabled)
+			if model.stage == "bargain" and i > 0 and enabled:
+				var line_width := font_body.get_string_size(str(options[i][1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 27).x
+				_money_icon(button, Rect2((width - line_width) * 0.5 - 33, 64, 27, 27))
 	if model.stage in ["packing_work", "roasting_work"]:
 		_render_workbench()
 	elif model.stage in ["market", "bargain", "bargain_chat", "bargain_result"]:
@@ -618,7 +638,7 @@ func _render_story() -> void:
 		_label(page, "要求%d · 到货%d\n请决定折价成交，或转售止损。" % [model.contract.quality, model.pending_delivery.quality], Rect2(699, 414, 535, 90), 29)
 	else:
 		_button(page, "look", "◎  留意场景", Rect2(790, 666, 350, 77), _show_history)
-	_label(page, "选择才消耗工期，思考不计时。", Rect2(61, 752, 575, 31), 21, PAPER)
+	_label(page, "确认行动才推进天数，阅读思考不计时。", Rect2(61, 752, 575, 31), 21, PAPER)
 	if model.can_borrow() or model.stage in ["packing", "dock"]:
 		_button(page, "support", "资金不足？找陈叔" if model.cash < 20 else "陈叔 · 周转与赊账", Rect2(42, 649, 397, 87), _show_support, model.cash < 20, action_busy)
 
@@ -632,7 +652,7 @@ func _render_quality_result() -> void:
 	_label(panel, model.quality_guidance(), Rect2(30, 184, 614, 67), 25, PAPER)
 	var comparison: String = QualityDisplay.comparison(model)
 	_label(panel, comparison if comparison != "" else "抽样给出范围；逐箱复核才能确认准确货色。", Rect2(30, 263, 614, 35), 23, GOLD if comparison != "" else MUTED).name = "QualityComparison"
-	_label(panel, "复焙 %d/2次 · 换货 %d/1次 · 处理要花钱与工期" % [model.rework_count, int(model.exchange_used)], Rect2(30, 304, 614, 29), 21, MUTED)
+	_label(panel, "复焙 %d/2次 · 换货 %d/1次 · 处理要花钱与时间" % [model.rework_count, int(model.exchange_used)], Rect2(30, 304, 614, 29), 21, MUTED)
 
 func _render_inspection() -> void:
 	var done: int = model.inspection_marks.size()
@@ -730,15 +750,15 @@ func _render_market_counter() -> void:
 	if model.stage == "bargain_result":
 		var r: Dictionary = model.bargain_result
 		_label(receipt, "成交货单 · 十箱茶", Rect2(30, 12, 448, 51), 32, INK, true)
-		_label(receipt, "实付 %d 点" % r.paid, Rect2(30, 71, 448, 69), 47, INK)
-		_label(receipt, "让利 %d 点  ·  还价多耗 %d 格" % [r.saving, r.delay], Rect2(30, 147, 448, 40), 24, INK)
-		_label(receipt, "取货另耗%d格 · 茶货尚未验明" % r.pickup_ticks, Rect2(30, 196, 448, 40), 24, INK)
+		_label(receipt, "实付 %d" % r.paid, Rect2(30, 71, 448, 69), 47, INK)
+		_label(receipt, "让利 %d  ·  还价多耗 %d天" % [r.saving, r.delay], Rect2(30, 147, 448, 40), 24, INK)
+		_label(receipt, "取货另耗%d天 · 茶货尚未验明" % r.pickup_ticks, Rect2(30, 196, 448, 40), 24, INK)
 	else:
 		_label(receipt, str(model.supplier.name) + " · 十箱", Rect2(30, 12, 448, 51), 32, INK, true)
-		_label(receipt, "报价 %d 点" % model.supplier.quote, Rect2(30, 71, 448, 69), 47, INK)
-		_label(receipt, "取货 %d 格  ·  货色待验" % model.supplier.ticks, Rect2(30, 149, 448, 40), 25, INK)
+		_label(receipt, "报价 %d" % model.supplier.quote, Rect2(30, 71, 448, 69), 47, INK)
+		_label(receipt, "取货 %d天  ·  货色待验" % model.supplier.ticks, Rect2(30, 149, 448, 40), 25, INK)
 		_label(receipt, "谈价前，先把想问的问清。", Rect2(30, 198, 448, 37), 23, INK)
-		_button(page, "market_talk", "先问一句 · 不耗工期" if model.stage == "bargain" else "回到议价", Rect2(757, 704, 406, 72), _market_conversation.bind(model.stage == "bargain", model.revision))
+		_button(page, "market_talk", "先问一句 · 不耗天数" if model.stage == "bargain" else "回到议价", Rect2(757, 704, 406, 72), _market_conversation.bind(model.stage == "bargain", model.revision))
 
 func _market_conversation(open: bool, revision: int) -> void:
 	if overlay_kind != "" or (transition_guard > 0 and not test_mode): return
@@ -751,15 +771,15 @@ func _render_result() -> void:
 	var r: Dictionary = model.result
 	var card := _panel(page, Rect2(635, 179, 686, 587), PAPER, GOLD)
 	_label(card, _fulfillment_text(), Rect2(40, 24, 610, 67), 32, INK if r.contract_met else RUST, true)
-	_label(card, "收支持平" if r.profit == 0 else (("赚了 %d 点" % r.profit) if r.profit > 0 else ("亏了 %d 点" % -int(r.profit))), Rect2(40, 95, 600, 87), 63, INK if r.profit >= 0 else RUST, true)
+	_label(card, "收支持平" if r.profit == 0 else (("赚了 %d" % r.profit) if r.profit > 0 else ("亏了 %d" % -int(r.profit))), Rect2(40, 95, 600, 87), 63, INK if r.profit >= 0 else RUST, true)
 	var rows := [
 		["货物验收", "到货%d箱 · 达标%d箱" % [r.delivered, r.qualified]],
-		["转售货值" if r.mode == "resale" else "交货货值", "%d 点" % r.gross],
-		["改单费用" if r.mode == "resale" else "迟交扣款", "−%d 点" % (r.cancellation_fee if r.mode == "resale" else r.penalty)],
-		["实际货款", "%d 点" % r.due],
-		["借赊清算", "%d 点（明细见账本）" % r.debt_settlement],
-		["全部支出", "−%d 点" % r.cost],
-		["剩余资金" if r.final_cash >= 0 else "清算缺口", "%d 点" % absi(int(r.final_cash))]]
+		["转售货值" if r.mode == "resale" else "交货货值", "%d" % r.gross],
+		["改单费用" if r.mode == "resale" else "迟交扣款", "−%d" % (r.cancellation_fee if r.mode == "resale" else r.penalty)],
+		["实际货款", "%d" % r.due],
+		["借赊清算", "%d（明细见账本）" % r.debt_settlement],
+		["全部支出", "−%d" % r.cost],
+		["剩余现钱" if r.final_cash >= 0 else "清算缺口", "%d" % absi(int(r.final_cash))]]
 	for i in rows.size():
 		_label(card, rows[i][0], Rect2(42, 200 + i * 49, 206, 43), 27, INK)
 		_label(card, rows[i][1], Rect2(248, 200 + i * 49, 408, 43), 25, INK)
@@ -770,7 +790,7 @@ func _render_result() -> void:
 	elif not r.contract_met:
 		line = "这单虽然赚了钱，原单仍未达标。下次再把货色、数量与交期一起照应好。"
 	if r.funding_gap > 0:
-		line = "这趟亏掉了本金，清算还差%d点。缺口没有免除，账本会记下这次经营的代价。" % r.funding_gap
+		line = "这趟亏掉了本金，清算还差%d。缺口没有免除，账本会记下这次经营的代价。" % r.funding_gap
 	_label(page, "陈叔", Rect2(68, 812, 285, 84), 29, GOLD, true)
 	_label(page, line, Rect2(380, 812, 1400, 84), 30)
 	_button(page, "review", "翻开详细账本", Rect2(336, 934, 588, 112), _show_ledger)
@@ -912,7 +932,7 @@ func _close_overlay() -> void:
 	idle_seconds = 0
 
 func _show_help() -> void:
-	_modal("陈叔的生意经", "货色、数量、交期都满足，原单才算达标；赚到钱也可能未达标。\n\n验茶：抽样查看两项，复核查看三项，再点「记下验茶结果」。\n复焙：先选火候；再取工具、点操作处。最多2次，不比手速。\n装箱：依次取衬料、茶货、箱盖与绳，再点箱口。\n\n现金为零仍可借款一次，或赊箱、赊运，最后还账。\n货色不足须选择折价或转售。所有补救都可能增加成本。\n\n单机模式不会因停留而清空。F11切换全屏；Esc打开结束菜单。", "help", 25)
+	_modal("陈叔的生意经", "金额与天数为游戏设定，贸易流程经过压缩。\n货色为0—100分；货色、数量、交期都满足，原单才算达标。\n\n阅读与思考不耗天数，确认经营行动才推进时间。\n验茶：抽样查看两项，复核查看三项，再确认验茶结果。\n复焙：先选火候，再取工具操作，最多两次。\n装箱：依次取衬料、茶货、箱盖与绳，再点箱口。\n\n现钱不足可借款一次，或赊箱、赊运，最后还账。\n货色不足可再处理；带风险装运，到货后另谈价格。\n\n单机停留不清空。F11切换全屏；Esc打开结束菜单。", "help", 25)
 
 func _show_audio_settings() -> void:
 	var panel := _modal("声音设置", "", "audio")
@@ -972,16 +992,16 @@ func _show_support() -> void:
 	if not model.can_borrow() and model.stage not in ["packing", "dock"]: return
 	var ticket: int = model.revision
 	var panel := _modal("陈叔 · 生意遇坎，先想办法", "", "support")
-	var text := "手头%d点 · 结算待还%d点。现金用完不会立即结束生意。\n\n" % [model.cash, model.debt_due()]
-	text += "周转：现在借60点，结算还66点，每局一次。\n"
-	if model.stage == "packing": text += "赊用旧箱：现在付0，结算扣12点，耗2格，防潮较弱。\n"
-	elif model.stage == "dock": text += "候船赊运：现在付0，结算扣18点，耗3格，风险较高。\n"
+	var text := "现钱%d · 结算待还%d。现钱用完不会立即结束生意。\n\n" % [model.cash, model.debt_due()]
+	text += "周转：现在借60，结算还66，每局一次。\n"
+	if model.stage == "packing": text += "赊用旧箱：现在付0，结算扣12，耗2天，防潮较弱。\n"
+	elif model.stage == "dock": text += "候船赊运：现在付0，结算扣18，耗3天，风险较高。\n"
 	else: text += "之后若没钱装箱或运船，还能选择赊箱、赊运。\n"
 	text += "\n这些钱都要还；最后可能亏本或出现资金缺口。"
 	_label(panel, text, Rect2(50, 127, 1060, 315), 27, INK)
-	_button(panel, "borrow", "借60点 · 结算还66" if model.can_borrow() else "本局周转已使用", Rect2(50, 494, 510, 93), _support_action.bind("borrow", ticket), true, not model.can_borrow())
+	_button(panel, "borrow", "借60 · 结算还66" if model.can_borrow() else "本局周转已使用", Rect2(50, 494, 510, 93), _support_action.bind("borrow", ticket), true, not model.can_borrow())
 	if model.stage in ["packing", "dock"]:
-		_button(panel, "defer", "赊箱 · 结算付12点" if model.stage == "packing" else "赊运 · 结算付18点", Rect2(584, 494, 526, 93), _support_action.bind("defer", ticket))
+		_button(panel, "defer", "赊箱 · 结算付12" if model.stage == "packing" else "赊运 · 结算付18", Rect2(584, 494, 526, 93), _support_action.bind("defer", ticket))
 
 func _support_action(kind: String, ticket: int) -> void:
 	if action_busy or overlay_kind != "support": return
@@ -999,7 +1019,7 @@ func _show_history() -> void:
 		"packing":"茶箱为什么要衬、要扎？\n\n运输中的潮气、搬动和等待都可能影响货物。这里的三步封箱是互动示意；材料与工序细节仍需馆方资料审定。",
 		"dock":"小艇连接货栈与外港\n\n香港艺术馆的外销艺术说明介绍了黄埔停泊的洋船与广州之间的货艇驳运。这里的码头是这条链路的示意，场景并非实测复原。",
 		"inspection":"茶样与货色\n\n看叶形、辨干湿、看汤色，是本游戏观察品质的三个入口。准确货色由付费复核给出，抽样仍有范围。画中茶样是示意，不对应真实茶叶评级。",
-		"roasting":"复焙与船期\n\n这里把处理方式简化为三种火候。常火提升12点，慢火14点，快火8点。费用、时间和提升值是游戏规则，操作动画不是制茶教学。",
+		"roasting":"复焙与船期\n\n这里把处理方式简化为三种火候。货色评分：常火提升12分，慢火14分，快火8分。费用、时间和提升值是游戏规则，操作动画不是制茶教学。",
 		"vessel":"在货艇上\n\n包装、路线和临场应对共同影响损货概率。看到雨并不等于一定损货；同一场风雨，处置与运气都可能改变结局。"}[current_location]
 	_modal("停一停，看看身边", info, "history")
 
@@ -1062,7 +1082,7 @@ func _confirm_character() -> void:
 
 func _show_ledger() -> void:
 	var panel := _modal("这笔生意 · 逐项记账", "", "ledger")
-	_label(panel, "本金%d · 账面%d · %s · 工期%d格" % [model.data.initial_cash, model.cash,
+	_label(panel, "本金%d · 现钱%d · %s · 已用%d天" % [model.data.initial_cash, model.cash,
 		"待补缺口%d" % -int(model.cash) if model.cash < 0 else "待清算%d" % model.debt_due(), model.ticks], Rect2(50, 127, 1060, 55), 27, INK)
 	for i in model.ledger.size():
 		var row: Dictionary = model.ledger[i]
@@ -1070,7 +1090,7 @@ func _show_ledger() -> void:
 		var y: int = 204 + (i % 7) * 44
 		_label(panel, row.label, Rect2(x, y, 387, 38), 22, INK)
 		_label(panel, "%+d" % row.amount, Rect2(x + 389, y, 113, 38), 23, INK)
-	var note := "借款本金不计收入，归还本金也不重复算成本；6点周转费才是成本。\n赊账费用在结算时扣除；货款已包含预付，需要抵扣或退款。"
+	var note := "借款本金不计收入，归还本金也不重复算成本；周转费6才是成本。\n赊账费用在结算时扣除；货款已包含预付，需要抵扣或退款。"
 	if not model.result.is_empty():
 		var r: Dictionary = model.result
 		note = "%s；货款%d − 总成本%d = 利润%d。\n尾款／退款净额：%+d；借赊清算%d；尚待填补缺口%d。" % [_fulfillment_text(), r.due, r.cost, r.profit, r.balance_due, r.debt_settlement, r.funding_gap]

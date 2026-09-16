@@ -193,7 +193,7 @@ func _choose_impl(index: int) -> bool:
 			if index != 0: return false
 			if not pending_delivery.quality_met:
 				stage = "acceptance"
-				last_line = "到货货色%d，原单要求%d。我能按%d点收下；若另寻买家，请先取消原单。" % [pending_delivery.quality, contract.quality, pending_delivery.due]
+				last_line = "到货货色%d，原单要求%d。我能按%d收下；若另寻买家，请先取消原单。" % [pending_delivery.quality, contract.quality, pending_delivery.due]
 			else: return _settle("standard")
 		"acceptance":
 			if index > 1: return false
@@ -220,11 +220,11 @@ func _buy(index: int) -> bool:
 			success = true
 			var saving := int(round(price * (0.08 if index == 1 else 0.18)))
 			price -= saving
-			outcome = "茶商让了%d点，这次议价成了。" % saving
+			outcome = "茶商让了%d，这次议价成了。" % saving
 		else:
 			delay = 1 if index == 1 else 2
 			ticks += delay
-			outcome = "茶商不肯让价，照原价成交；议价耽搁了%d格。" % (1 if index == 1 else 2)
+			outcome = "茶商不肯让价，照原价成交；议价耽搁了%d天。" % (1 if index == 1 else 2)
 	_book("purchase", str(supplier.name), -price)
 	ticks += int(supplier.ticks)
 	quality = rng.randi_range(int(supplier.quality_min), int(supplier.quality_max))
@@ -288,7 +288,7 @@ func inspection_clue(index: int) -> String:
 	var tier := 0 if quality < 65 else (1 if quality < 86 else 2)
 	var clues := [
 		["叶形碎杂，整齐度欠佳。先别只凭便宜作决定。", "叶形大体齐整，也夹着碎叶；还要照应干湿。", "叶形齐整，碎叶较少；货色仍要结合其他检查。"],
-		["捻开后有些发软，干燥状况欠佳。复焙值得考虑。", "捻开略有韧性，干燥状况一般；处理还得算工期。", "捻开干爽，未见明显潮软；上船仍要防潮。"],
+		["捻开后有些发软，干燥状况欠佳。复焙值得考虑。", "捻开略有韧性，干燥状况一般；处理还得算时间。", "捻开干爽，未见明显潮软；上船仍要防潮。"],
 		["茶汤较浑，茶样的一致性欠佳。", "茶汤尚清，仔细复核整批才知道能否达标。", "茶汤清亮，茶样状态较好。"]
 	]
 	return clues[index][tier] + ("（抽样观察）" if inspection_level == 1 else "")
@@ -313,7 +313,7 @@ func _remedy(index: int) -> bool:
 	_book("exchange", "补价换货", -cost)
 	if inspected > 0:
 		quality_report = "处理后货色 %d / 100" % quality if inspected == 2 else "处理后约 %d—%d" % [maxi(0, quality - 7), mini(100, quality + 7)]
-	_event("货物处理", "换货完成，花了%d点、多用2格。%s" % [cost,
+	_event("货物处理", "换货完成，花了%d、多花2天。%s" % [cost,
 		"货色%d→%d；可以再决定是否装运。" % [before, quality] if inspected == 2 else "货色提高%d；可以再决定是否装运。" % (quality - before)])
 	return true
 
@@ -328,7 +328,7 @@ func _begin_roast(index: int) -> bool:
 	roast_step = 0
 	work_tool = -1
 	stage = "roasting_work"
-	_event("选定火候", "%s，费用%d点、工期%d格已记账。先取火钳拨匀炭火。" % [plan.name, plan.cost, plan.ticks])
+	_event("选定火候", "%s，花费%d、耗时%d天已记账。先取火钳拨匀炭火。" % [plan.name, plan.cost, plan.ticks])
 	return true
 
 func cancel_roast_plan(expected_revision: int = -1) -> bool:
@@ -368,9 +368,9 @@ func quality_guidance() -> String:
 	var bounds := quality_bounds()
 	if bounds.y < int(contract.quality):
 		return "当前%s，低于要求%d；%s" % [str(quality) if inspected == 2 else "%d—%d" % [bounds.x, bounds.y], contract.quality,
-			"还差%d点。" % (int(contract.quality) - quality) if inspected == 2 else "抽样上限也未达标。"]
+			"还差%d分。" % (int(contract.quality) - quality) if inspected == 2 else "抽样上限也未达标。"]
 	if bounds.x < int(contract.quality): return "抽样区间跨过门槛，仍有不达标的可能。"
-	return "当前货色达到门槛；正常运输仍可能降低0—3点。"
+	return "当前货色达到门槛；正常运输仍可能降低0—3分。"
 
 func remedy_preview(gain: int) -> String:
 	if inspected == 0: return "货色+%d · 尚未验货" % gain
@@ -390,7 +390,7 @@ func borrow(expected_revision: int = -1) -> bool:
 	loan_principal = 60
 	loan_fee = 6
 	_book("loan", "陈叔周转借款（须归还）", loan_principal)
-	_event("一次周转", "陈叔借来60点；结算时还66点。这笔借款不算收入。")
+	_event("一次周转", "陈叔借来现钱60；结算时还66。这笔借款不算收入。")
 	revision += 1
 	return true
 
@@ -404,7 +404,7 @@ func use_deferred(expected_revision: int = -1) -> bool:
 		packing_step = 0
 		work_tool = -1
 		stage = "packing_work"
-		_event("赊账装箱", "先赊用旧箱，结算扣12点；耗2格，防潮较弱。")
+		_event("赊账装箱", "先赊用旧箱，结算扣12；耗2天，防潮较弱。")
 	elif stage == "dock":
 		route = {"name":"候船赊运", "cost":18, "ticks":3, "exposure":1.40}
 		deferred_cost += 18
@@ -564,11 +564,11 @@ func chapter() -> int:
 
 func ending() -> Array:
 	if result.is_empty(): return ["茶船将发", "这一趟还在路上。", "先把手里的事做完。"]
-	if result.funding_gap > 0: return ["一笔未清的账", "茶船走了，账房还留着%d点缺口。陈叔陪你把每项支出重新写清。" % result.funding_gap, "下次先留周转钱；赊下的费用，终究要还。"]
+	if result.funding_gap > 0: return ["一笔未清的账", "茶船走了，账房还留着%d缺口。陈叔陪你把每项支出重新写清。" % result.funding_gap, "下次先留周转钱；赊下的费用，终究要还。"]
 	if result.mode == "resale": return ["换一个买主", "原单取消后，你为%d箱茶另寻出路。梁老板帮着牵线，阿顺等你重新点货。" % result.delivered, "止损也要算清改单费和预付款，才知道收回了多少。"]
-	if result.contract_met and result.profit >= 0: return ["陈叔把账本交给你", "十箱茶如约交清。这一单收支相抵，陈叔让你把打平的账也仔细记好。" if result.profit == 0 else "十箱茶如约交清。交接人合上货单，陈叔让你亲手记下这笔%d点的盈余。" % result.profit, "从选茶到封箱，你终于独立照应完一笔生意。"]
+	if result.contract_met and result.profit >= 0: return ["陈叔把账本交给你", "十箱茶如约交清。这一单收支相抵，陈叔让你把打平的账也仔细记好。" if result.profit == 0 else "十箱茶如约交清。交接人合上货单，陈叔让你亲手记下这笔%d的盈余。" % result.profit, "从选茶到封箱，你终于独立照应完一笔生意。"]
 	if result.lost > 0: return ["湿了的茶箱", "阿顺把%d箱损货摆在岸边。你点清余货，也把这次风雨的代价记进账里。" % result.lost, "路上的风险压不成零；包装、路线和应对，都有分量。"]
-	if result.late > 0: return ["赶上货，误了期", "茶到了，原定交期却已过去%d格。交接人按约扣款，陈叔提醒你回看一路的等待。" % result.late, "货色值得照应，船期也要从接单时一起算。"]
+	if result.late > 0: return ["赶上货，误了期", "茶到了，原定交期却已过去%d天。交接人按约扣款，陈叔提醒你回看一路的等待。" % result.late, "货色值得照应，船期也要从接单时一起算。"]
 	if not result.quality_met: return ["货色之外，还有商量", "交接人指出货色差距。你确认折价，让茶货仍有去处，也在账上留下未达标的记录。", "卖出去与如约交付，是两件需要分别照应的事。"]
 	return ["交清了货，蚀了本", "茶货交清了，成本却吃掉了货款。陈叔把账本推来，让你找出最贵的那一步。", "每次补救都有效果，也都有价钱。"]
 
