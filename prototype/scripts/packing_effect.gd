@@ -10,11 +10,17 @@ var manual_liner := false
 var progress := 0.0
 var protection := 0.0
 var age := 0.0
+var _draw_state: Array = []
 const RIM := [Vector2(-178,18), Vector2(-80,-52), Vector2(176,0), Vector2(88,48)]
 const LID := [Vector2(-220,8), Vector2(-83,-81), Vector2(219,-15), Vector2(95,68)]
 
 func _process(_delta: float) -> void:
-	queue_redraw()
+	# Godot retains CanvasItem commands. Keep the stationary lid/woodgrain cached
+	# while the separate gesture layer draws the moving rope; animate on actual changes.
+	var state := [step,sealed,performing,manual_rope,manual_lid_open,manual_fill,manual_liner,progress,protection]
+	if state != _draw_state:
+		_draw_state = state
+		queue_redraw()
 
 func _leaf(at: Vector2, index: int) -> void:
 	draw_set_transform(at, index * 1.37, Vector2(1, 0.5))

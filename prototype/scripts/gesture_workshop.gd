@@ -31,6 +31,11 @@ var stir_valid := false
 var rope_routes: Array[PackedVector2Array] = []
 var rope_index := 0
 var rope_point := 1
+var rope_distance := 0.0
+var rope_lengths: Array[PackedFloat64Array] = []
+const ROPE_RADIUS := 36.0
+const ROPE_REJOIN := 64.0
+const ROPE_FINISH := 12.0
 const CUP_CENTER := Vector2(966, 544)
 const PAN_CENTER := Vector2(956, 514)
 const PAN_RADIUS := Vector2(178, 53)
@@ -72,9 +77,7 @@ func begin(mode: String, index: int, seed_value: int = 0, already_loaded: int = 
 	elif kind == "stir":
 		object_position = PAN_CENTER + Vector2(PAN_RADIUS.x,0)
 	elif kind == "rope":
-		rope_routes = [
-			_dense([Vector2(807,528),Vector2(1124,584),Vector2(1121,703)]),
-			_dense([Vector2(981,496),Vector2(905,600),Vector2(902,691)])]
+		_setup_rope()
 	queue_redraw()
 
 func cancel() -> void:
@@ -95,6 +98,7 @@ func cancel() -> void:
 	stir_valid = false
 	rope_index = 0
 	rope_point = 1
+	rope_distance = 0.0
 
 func suspend() -> void:
 	paused = true
@@ -116,11 +120,60 @@ func _dense(corners: Array) -> PackedVector2Array:
 		for j in range(1,count+1): points.append(corners[i].lerp(corners[i+1], float(j)/count))
 	return points
 
+func _setup_rope() -> void:
+	rope_routes = [
+		_dense([Vector2(807,528),Vector2(1124,584),Vector2(1121,703)]),
+		_dense([Vector2(981,496),Vector2(905,600),Vector2(902,691)])]
+	rope_lengths.clear()
+	for path in rope_routes:
+		var lengths := PackedFloat64Array([0.0])
+		for i in range(1,path.size()): lengths.append(lengths[-1]+path[i-1].distance_to(path[i]))
+		rope_lengths.append(lengths)
+
+func rope_tip() -> Vector2:
+	var path := rope_routes[rope_index]
+	var lengths := rope_lengths[rope_index]
+	var fraction := (rope_distance-lengths[rope_point-1])/(lengths[rope_point]-lengths[rope_point-1])
+	return path[rope_point-1].lerp(path[rope_point],clampf(fraction,0,1))
+
+func _trace_rope(point: Vector2) -> void:
+	var travel := last_pointer.distance_to(point)
+	# A press/release at the same position never traces, even inside the generous pickup area.
+	if travel < 0.001: return
+	var path := rope_routes[rope_index]
+	var lengths := rope_lengths[rope_index]
+	var count := clampi(ceili(travel/8.0),1,256)
+	var connected := false
+	for sample_index in range(1,count+1):
+		var sample := last_pointer.lerp(point,float(sample_index)/count)
+		var nearest := INF
+		var along := rope_distance
+		# Follow a continuous projection near the earned progress. This admits rounded corners
+		# and sparse events, but an excursion cannot rejoin far ahead or skip the bend.
+		for i in path.size()-1:
+			if lengths[i+1] < rope_distance-ROPE_REJOIN: continue
+			if lengths[i] > rope_distance+ROPE_REJOIN: break
+			var projected := Geometry2D.get_closest_point_to_segment(sample,path[i],path[i+1])
+			var candidate := lengths[i]+path[i].distance_to(projected)
+			var distance := sample.distance_squared_to(projected)
+			if distance < nearest:
+				nearest = distance
+				along = candidate
+		connected = nearest <= ROPE_RADIUS*ROPE_RADIUS and absf(along-rope_distance) <= ROPE_REJOIN
+		if not connected: continue
+		rope_distance = maxf(rope_distance,along)
+		if lengths[-1]-rope_distance <= ROPE_FINISH and sample.distance_to(path[-1]) <= ROPE_RADIUS:
+			rope_distance = lengths[-1]
+			release_ready = true
+		while rope_point < path.size()-1 and rope_distance >= lengths[rope_point]: rope_point += 1
+		if release_ready: break
+	if not connected: feedback = "稍微偏开了，回到亮点附近接着画"
+
 func progress() -> float:
 	if kind == "loading": return 1.0 if release_ready or settling > 0 else 0.0
 	if kind == "cup": return minf(1, swings / 3.0)
 	if kind == "stir": return minf(1, amount / TAU)
-	return (rope_index + (1.0 if release_ready else float(rope_point - 1) / maxf(1, rope_routes[mini(rope_index,1)].size()-1))) / 2.0 if not rope_routes.is_empty() else 0.0
+	return (rope_index+rope_distance/rope_lengths[rope_index][-1])/2.0 if not rope_lengths.is_empty() else 0.0
 
 func hint() -> String:
 	if settling > 0: return {"loading":"箱组已对齐 · 正在落位", "cup":"茶汤看清了 · 记下观察", "stir":"翻茶完成 · 收好工具", "rope":"两道绳已收紧 · 封箱完成"}.get(kind, "完成")
@@ -138,7 +191,7 @@ func _start_hit(point: Vector2) -> bool:
 				if Rect2(object_position + cell * CELL, BOX_SIZE).grow(12).has_point(point): return true
 		"cup": return Rect2(object_position - Vector2(115,95), Vector2(230,190)).has_point(point)
 		"stir": return point.distance_to(object_position) <= 94
-		"rope": return point.distance_to(rope_routes[rope_index][maxi(0,rope_point-1)]) <= 38
+		"rope": return point.distance_to(rope_tip()) <= 48
 	return false
 
 func handle_event(event: InputEvent) -> bool:
@@ -191,20 +244,7 @@ func _move(point: Vector2) -> void:
 		release_ready = swings >= 3
 	elif kind == "stir": _stir(point)
 	elif kind == "rope" and not release_ready:
-		if last_pointer.distance_to(point) < 1.5: return
-		# Interpolate a sparse device event, but require visiting every point in order.
-		var count := maxi(1,ceili(last_pointer.distance_to(point)/8.0))
-		for i in range(1,mini(count,240)+1):
-			var sample := last_pointer.lerp(point, float(i)/count)
-			var path := rope_routes[rope_index]
-			if sample.distance_to(path[rope_point]) <= 25:
-				rope_point += 1
-				if rope_point >= path.size():
-					rope_point = path.size()-1
-					release_ready = true
-					break
-		if not release_ready and point.distance_to(rope_routes[rope_index][rope_point-1]) > 65:
-			feedback = "沿虚线慢慢走，可回到亮点继续"
+		_trace_rope(point)
 	last_pointer = point
 	queue_redraw()
 
@@ -239,6 +279,7 @@ func _release() -> void:
 	if kind == "rope" and rope_index == 0:
 		rope_index = 1
 		rope_point = 1
+		rope_distance = 0.0
 		release_ready = false
 		feedback = "第一道已收紧，接着描画第二道绳"
 	else:
@@ -308,7 +349,9 @@ func _draw() -> void:
 				if i%2 == 0: draw_line(path[i],path[i+1],Color(0.98,0.87,0.60,0.72),4,true)
 			if route < rope_index: _line(path,green,7)
 			elif route == rope_index:
-				_line(path.slice(0,rope_point+1 if release_ready else rope_point),gold,7)
-				draw_circle(path[rope_point-1],17,green)
+				var stroke := path.slice(0,rope_point)
+				stroke.append(rope_tip())
+				_line(stroke,green if release_ready else gold,7)
+				draw_circle(rope_tip(),17,green)
 				draw_arc(path[-1],18,0,TAU,40,gold,4,true)
-				if font: draw_string(font,path[0]+Vector2(-20,-28),"起点" if rope_point == 1 else "接着画",HORIZONTAL_ALIGNMENT_LEFT,-1,23,gold)
+				if font: draw_string(font,path[0]+Vector2(-20,-28),"起点" if rope_distance < 1 else "接着画",HORIZONTAL_ALIGNMENT_LEFT,-1,23,gold)

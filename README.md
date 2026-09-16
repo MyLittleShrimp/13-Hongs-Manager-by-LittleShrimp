@@ -1,8 +1,15 @@
 # 十三行 · 茶船将发
 
-**单机茶叶篇 v0.11.0｜Godot 4.7.2｜横屏鼠标／触摸**
+**单机茶叶篇 v0.11.1｜Godot 4.7.2｜横屏鼠标／触摸**
 
-**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.11.0 更新说明](docs/releases/v0.11.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.11.0-Windows-x64.zip`，包含两首背景音乐、全部场景与原画参考图和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.11.1 更新说明](docs/releases/v0.11.1.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.11.1-Windows-x64.zip`，包含两首背景音乐、全部场景与原画参考图和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+
+## v0.11.1 封绳更顺手
+
+- 绳头和进度条连续跟随描画，消除按小段跳动的感觉。
+- 拐角和手指偏移的判定更宽容，终点附近自动收齐；中途松手可在亮点附近接着画。
+- 箱盖木纹复用静态绘制，减少描绳期间的重复计算。
+- 保留两道绳分别松手收紧、误操作重试、暂停续画与原有经营规则。详见 [修复与验证](docs/v0.11.1封绳流畅度修复.md)。
 
 ## v0.11.0 工序手势与操作衔接
 

@@ -57,8 +57,7 @@ func begin(mode: String, index: int, seed_value: int = 0, already_loaded: int = 
 		"pour": object_position = Vector2(1240,563)
 		"seal":
 			object_position = Vector2(1255,628)
-			rope_routes = [_dense([Vector2(807,528),Vector2(1124,584),Vector2(1121,703)]),
-				_dense([Vector2(981,496),Vector2(905,600),Vector2(902,691)])]
+			_setup_rope()
 	home = object_position
 
 func pickup_from_tray(event: InputEvent) -> void:
