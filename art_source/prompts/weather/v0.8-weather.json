@@ -1,0 +1,86 @@
+{
+  "counter_overcast": {
+    "place": "counter",
+    "weather": "overcast",
+    "prompt": "Use case: lighting-weather. Edit target: the attached existing counter scene background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Overcast daytime, low dense grey cloud cover visible beyond the open doorway; absolutely no golden sun, sunbeams or hard shadows. Cool soft daylight throughout the room, still readable warm brown timber, water subdued, dry sheltered counter. No rain yet. Preserve EXACT camera framing, perspective, positions and scale of every building, doorway, table, basket, crate, boat, tea bowl, tree, pavement and existing distant figures. Same hand-painted naturalistic Chinese export-art-inspired style and wide 16:9 image. Keep playable empty foreground. Do not add characters, props, text, UI, labels or borders. Change weather and coherent lighting only. Maintain detailed readable midtones rather than a black overlay. Existing artwork is fictional game art.",
+    "reference": "prototype/assets/backgrounds/counter.png"
+  },
+  "counter_storm": {
+    "place": "counter",
+    "weather": "storm",
+    "prompt": "Use case: lighting-weather. Edit target: the attached existing counter scene background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Heavy storm daylight. Dark slate storm clouds outside, a misty rain-swept river and wet uncovered quay, slight ripples on the river. No sun or warm exterior glow. Cooler dimmer diffuse light inside, keep the indoor counter and tea dry and all details clearly readable, no rain indoors. Preserve EXACT camera framing, perspective, positions and scale of every building, doorway, table, basket, crate, boat, tea bowl, tree, pavement and existing distant figures. Same hand-painted naturalistic Chinese export-art-inspired style and wide 16:9 image. Keep playable empty foreground. Do not add characters, props, text, UI, labels or borders. Change weather and coherent lighting only. Maintain detailed readable midtones rather than a black overlay. Existing artwork is fictional game art.",
+    "reference": "prototype/assets/backgrounds/counter.png"
+  },
+  "market_overcast": {
+    "place": "market",
+    "weather": "overcast",
+    "prompt": "Use case: lighting-weather. Edit target: the attached existing market scene background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Overcast daytime, dense low grey clouds replace every patch of blue sky, diffused cool light on stone street, no harsh sunlight or sun rays, dry tea under awnings. No rain yet. Preserve EXACT camera framing, perspective, positions and scale of every building, doorway, table, basket, crate, boat, tea bowl, tree, pavement and existing distant figures. Same hand-painted naturalistic Chinese export-art-inspired style and wide 16:9 image. Keep playable empty foreground. Do not add characters, props, text, UI, labels or borders. Change weather and coherent lighting only. Maintain detailed readable midtones rather than a black overlay. Existing artwork is fictional game art.",
+    "reference": "prototype/assets/backgrounds/market.png"
+  },
+  "market_storm": {
+    "place": "market",
+    "weather": "storm",
+    "prompt": "Use case: lighting-weather. Edit target: the attached existing market scene background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Heavy rain daytime, dark slate clouds in visible sky, wet reflective stone street and fine slanting rain only on the uncovered street, damp awnings, muted cool ambient light. Tea merchandise sheltered and dry, no golden sunshine. Preserve EXACT camera framing, perspective, positions and scale of every building, doorway, table, basket, crate, boat, tea bowl, tree, pavement and existing distant figures. Same hand-painted naturalistic Chinese export-art-inspired style and wide 16:9 image. Keep playable empty foreground. Do not add characters, props, text, UI, labels or borders. Change weather and coherent lighting only. Maintain detailed readable midtones rather than a black overlay. Existing artwork is fictional game art.",
+    "reference": "prototype/assets/backgrounds/market.png"
+  },
+  "inspection_overcast": {
+    "place": "inspection",
+    "weather": "overcast",
+    "reference": "prototype/assets/backgrounds/inspection.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing inspection background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Overcast daytime. Both window and door openings show low grey cloud, soft cool diffuse light replaces the strong golden sunlight and floor lattice shadows. No rain yet. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "inspection_storm": {
+    "place": "inspection",
+    "weather": "storm",
+    "reference": "prototype/assets/backgrounds/inspection.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing inspection background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Stormy rainy daytime. Through BOTH openings show dark slate clouds, rain-softened river and buildings; remove ALL golden sunlight and lattice sun shadows from interior. Sheltered tea and table stay dry. Cool dim but legible indoor light. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "roasting_overcast": {
+    "place": "roasting",
+    "weather": "overcast",
+    "reference": "prototype/assets/backgrounds/roasting.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing roasting background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Overcast daytime outside every lattice window. No blue sky, golden sun shafts or sharp sun shadows. Diffuse cool ambient lighting; the existing charcoal fire keeps its warm orange glow. Indoor tea stays dry. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "roasting_storm": {
+    "place": "roasting",
+    "weather": "storm",
+    "reference": "prototype/assets/backgrounds/roasting.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing roasting background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Rainy storm daytime outside every lattice window. Slate grey cloud and rain haze beyond the windows, no blue sky or sunlight or hard lattice shadows. Cool dim but readable room, keep existing charcoal fire glowing orange and tea dry; no rain inside. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "packing_clear": {
+    "place": "packing",
+    "weather": "clear",
+    "reference": "prototype/assets/backgrounds/packing.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing packing background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Clear pleasant sunny daytime outside the open back windows: bright pale blue sky with sparse white clouds, distant river and boats sunlit, NO grey rain curtain. Warm natural sun patches, existing lanterns may stay gently warm, indoor wooden floor and cargo dry. Remove original rain. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "packing_overcast": {
+    "place": "packing",
+    "weather": "overcast",
+    "reference": "prototype/assets/backgrounds/packing.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing packing background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Overcast DRY daytime, dense grey clouds through back windows, no visible rain streaks at all. Soft cool diffuse light, river and distant buildings clear enough, dry floor. Existing lanterns keep gentle warm glow. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "dock_clear": {
+    "place": "dock",
+    "weather": "clear",
+    "reference": "prototype/assets/backgrounds/dock.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing dock background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Clearly SUNNY calm daytime: blue sky with only a few white clouds, NO ominous storm clouds. Warm sunshine with coherent shadows, calm sunlit water. Preserve boats and quay exactly. No rain. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "dock_storm": {
+    "place": "dock",
+    "weather": "storm",
+    "reference": "prototype/assets/backgrounds/dock.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing dock background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Heavy rainy daytime: dense dark slate cloud across ENTIRE sky, no golden sunset or sun, cold grey river with choppy small waves, wet quay with reflections and wind-driven fine rain, distant shore rain haze. Clearly readable midtones. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "vessel_clear": {
+    "place": "vessel",
+    "weather": "clear",
+    "reference": "prototype/assets/backgrounds/vessel.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing vessel background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Clearly SUNNY calm daytime: pale blue sky and sparse white clouds instead of grey overcast, coherent soft golden sunshine on the wood and river. No dark clouds, no rain. Preserve foreground canopy and deck geometry. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  },
+  "vessel_storm": {
+    "place": "vessel",
+    "weather": "storm",
+    "reference": "prototype/assets/backgrounds/vessel.png",
+    "prompt": "Use case: lighting-weather. Edit target: attached existing vessel background for a 2D landscape historical Guangzhou tea-trading game. Create ONLY ONE full-frame weather variant. Heavy rainy daytime: dark low slate storm clouds throughout visible sky, grey choppy river and rain haze, distant shore softened. Rain OUTSIDE the existing canopy, the sheltered foreground deck readable, no golden sunlight. Preserve canopy, rigging and deck geometry. Preserve EXACT camera framing, perspective, positions and scale of every building, window, table, tool, tea tray, basket, crate, boat, beam, tree and existing figure. Same detailed naturalistic hand-painted game style. Wide 16:9 image, empty playable foreground stays empty. No new characters, props, text, UI or borders. Change weather and coherent lighting only, not an overall dark filter. Existing artwork is fictional game art."
+  }
+}

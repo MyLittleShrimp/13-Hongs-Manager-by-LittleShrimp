@@ -1,0 +1,175 @@
+{
+  "generator": "Built-in ImageGen",
+  "date": "2026-09-16",
+  "prompt_file": "art_source/prompts/weather/v0.8-weather.json",
+  "assets": [
+    {
+      "key": "counter_overcast",
+      "output_id": "exec-a79277cf-3301-40ff-8696-9a4b89213ce8.png",
+      "target": "prototype/assets/backgrounds/weather/counter_overcast.png",
+      "bytes": 2385589,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "804c9a90b75422f9c6248637b9980dd5446f11c0090fa7c206c1343e4ad8cebf",
+      "reference": "prototype/assets/backgrounds/counter.png"
+    },
+    {
+      "key": "counter_storm",
+      "output_id": "exec-f9d56989-c428-4b78-93dd-30d3167161a8.png",
+      "target": "prototype/assets/backgrounds/weather/counter_storm.png",
+      "bytes": 2413700,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "75d400572c08ae6c5dc00847555bc2349984454202a3d1401c1656f80d09f932",
+      "reference": "prototype/assets/backgrounds/counter.png"
+    },
+    {
+      "key": "market_overcast",
+      "output_id": "exec-52cc00c2-a538-4a51-b5e9-f4627158229a.png",
+      "target": "prototype/assets/backgrounds/weather/market_overcast.png",
+      "bytes": 2583814,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "5866d57c1d7eebae013ac099d456e6b6ba915841af433dc7a675ddfba1b60356",
+      "reference": "prototype/assets/backgrounds/market.png"
+    },
+    {
+      "key": "market_storm",
+      "output_id": "exec-0039c1a0-4196-458f-94ab-c2bb0b79e20a.png",
+      "target": "prototype/assets/backgrounds/weather/market_storm.png",
+      "bytes": 2976977,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "3b8deef216fb047f4524ed562d0b9ffbb3f153cc9030a03258ec75629721f3c7",
+      "reference": "prototype/assets/backgrounds/market.png"
+    },
+    {
+      "key": "inspection_overcast",
+      "output_id": "exec-9b6b826e-d16d-413c-896d-e98b1cdf4a17.png",
+      "target": "prototype/assets/backgrounds/weather/inspection_overcast.png",
+      "bytes": 2352528,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "75845142ecd2d78d14e9857afea4b1d0a1225cbaa41f4df98dd67b9d03b4dc9d",
+      "reference": "prototype/assets/backgrounds/inspection.png"
+    },
+    {
+      "key": "inspection_storm",
+      "output_id": "exec-3e652875-9f9e-4ac2-968e-a81169f92c21.png",
+      "target": "prototype/assets/backgrounds/weather/inspection_storm.png",
+      "bytes": 2336036,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "08b02898e0ebd0f7aca2d3c12f853e7d3539f059136c2146ac158bf4be0827f6",
+      "reference": "prototype/assets/backgrounds/inspection.png"
+    },
+    {
+      "key": "roasting_overcast",
+      "output_id": "exec-7ed59efd-b43e-484f-afa2-d42201a0dfa1.png",
+      "target": "prototype/assets/backgrounds/weather/roasting_overcast.png",
+      "bytes": 2488185,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "c95711195c3df34a7bc3dcda7c4d7d9fa9a19081d32d5baddd5dbae7d750fdb0",
+      "reference": "prototype/assets/backgrounds/roasting.png"
+    },
+    {
+      "key": "roasting_storm",
+      "output_id": "exec-7018d2fb-19d4-47ae-b1c5-b43e03502245.png",
+      "target": "prototype/assets/backgrounds/weather/roasting_storm.png",
+      "bytes": 2454906,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "f7020282ee3648d35ad20d0f7f617a5f81ac3a8bc1bca21922ae9461c2ce83cf",
+      "reference": "prototype/assets/backgrounds/roasting.png"
+    },
+    {
+      "key": "packing_clear",
+      "output_id": "exec-d948ba92-d981-4e34-8f11-bea55c62a726.png",
+      "target": "prototype/assets/backgrounds/weather/packing_clear.png",
+      "bytes": 2427586,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "493468590b4ab387b8f967f4e0df1d62860420d96b9930ad05e329a6729261b4",
+      "reference": "prototype/assets/backgrounds/packing.png"
+    },
+    {
+      "key": "packing_overcast",
+      "output_id": "exec-4e8b3d71-6993-4378-9ae2-26db8d863557.png",
+      "target": "prototype/assets/backgrounds/weather/packing_overcast.png",
+      "bytes": 2276129,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "e18b298fe3238e1d4c6be4158fb3ff4976422f857af4c474a49ca026ccd8c792",
+      "reference": "prototype/assets/backgrounds/packing.png"
+    },
+    {
+      "key": "dock_clear",
+      "output_id": "exec-54e17157-70bd-45ca-beb2-c34e64cd6ee1.png",
+      "target": "prototype/assets/backgrounds/weather/dock_clear.png",
+      "bytes": 2690223,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "0b30982eca4799825100c3ff27ea8b34483afac1869b795c0e9986587de1028c",
+      "reference": "prototype/assets/backgrounds/dock.png"
+    },
+    {
+      "key": "dock_storm",
+      "output_id": "exec-82e91909-4a3a-4628-9e8d-da751dd3e6d5.png",
+      "target": "prototype/assets/backgrounds/weather/dock_storm.png",
+      "bytes": 2852410,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "908256342faec22443689a3752914ef3a5f9aa0c47ebf6f48ea546e4fd7202b9",
+      "reference": "prototype/assets/backgrounds/dock.png"
+    },
+    {
+      "key": "vessel_clear",
+      "output_id": "exec-28db7831-98e3-4ab1-8f2c-32f8d71217c5.png",
+      "target": "prototype/assets/backgrounds/weather/vessel_clear.png",
+      "bytes": 2861388,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "4fc664c1954e58393aa26c779d50a7d563bbbd584d83d79182f92d882fc4c6cb",
+      "reference": "prototype/assets/backgrounds/vessel.png"
+    },
+    {
+      "key": "vessel_storm",
+      "output_id": "exec-0ad72b1f-10eb-408c-8afa-77cf6a07567e.png",
+      "target": "prototype/assets/backgrounds/weather/vessel_storm.png",
+      "bytes": 2832857,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "783995bf0d63486d7185008c94fbaa05d74422b0aef1ada1343513366212a438",
+      "reference": "prototype/assets/backgrounds/vessel.png"
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "artworks": {
+    "canton": {
+      "title": "广州商馆与江面",
+      "original_title": "Canton Harbor and Factories with Foreign Flags",
+      "artist": "佚名（中国画家）",
+      "date": "约1805年",
+      "medium": "玻璃背绘",
+      "collection": "皮博迪埃塞克斯博物馆",
+      "accession": "E78680",
+      "image": "res://assets/references/canton_factories.jpg",
+      "license": "Public Domain（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "MIT Visualizing Cultures / Wikimedia Commons",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Canton_factories.jpg",
+      "catalogue_url": "https://visualizingcultures.mit.edu/rise_fall_canton_04/gallery_places/index.htm",
+      "credit": "Peabody Essex Museum / Jeffrey R. Dykes；图像副本来自 Wikimedia Commons"
+    },
+    "sampling": {
+      "title": "验茶",
+      "original_title": "Sampling the tea",
+      "artist": "佚名（中国画家）",
+      "date": "约1770年",
+      "medium": "纸本水彩",
+      "collection": "荷兰国立博物馆 Rijksmuseum",
+      "accession": "NG-1981-12-B",
+      "image": "res://assets/references/sampling_tea.jpg",
+      "license": "Public Domain（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "Rijksmuseum 馆藏与 IIIF 图像",
+      "source_url": "https://id.rijksmuseum.nl/200397293",
+      "catalogue_url": "https://www.rijksmuseum.nl/en/collection/object/Sampling-the-tea--905f440515b008a2aac12f6d6b3909f0",
+      "credit": "Rijksmuseum, Amsterdam"
+    },
+    "packing": {
+      "title": "将茶叶压实入箱",
+      "original_title": "A man pounding tea leaves down into a large wooden box with a large pestle, watched by a small boy.",
+      "artist": "佚名（中国画家）",
+      "date": "约1850年",
+      "medium": "纸本水粉",
+      "collection": "Wellcome Collection（伦敦）",
+      "accession": "572197i / V0018611",
+      "image": "res://assets/references/packing_tea.jpg",
+      "license": "Public Domain Mark（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "Wellcome Collection 馆藏与 IIIF 图像",
+      "source_url": "https://wellcomecollection.org/works/ejnjhtgn",
+      "catalogue_url": "https://wellcomecollection.org/works/ejnjhtgn",
+      "credit": "Wellcome Collection"
+    },
+    "roasting": {
+      "title": "炉上翻茶与添火",
+      "original_title": "A man stirs tea leaves drying over a brick oven, while another tends the fire.",
+      "artist": "佚名（中国画家）",
+      "date": "约1850年",
+      "medium": "纸本水粉",
+      "collection": "Wellcome Collection（伦敦）",
+      "accession": "572158i / V0018603",
+      "image": "res://assets/references/roasting_tea.jpg",
+      "license": "Public Domain Mark（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "Wellcome Collection 馆藏与 IIIF 图像",
+      "source_url": "https://wellcomecollection.org/works/qv74uhng",
+      "catalogue_url": "https://wellcomecollection.org/works/qv74uhng",
+      "credit": "Wellcome Collection"
+    }
+  },
+  "scenes": {
+    "counter": {
+      "artwork": "canton",
+      "heading": "沿江的商馆",
+      "observe": "先找画中的商馆、旗帜与船只。江岸的建筑与水面交通，被放在同一幅贸易景观里。",
+      "connection": "游戏把接单与记账放进行号账房，借这幅画认识商馆与江岸的关系。室内陈设与人物为游戏创作。"
+    },
+    "market": {
+      "artwork": "sampling",
+      "heading": "买茶，也要看茶",
+      "observe": "留意画中围着茶篮查看茶叶的人。茶叶买卖不仅关乎数量，货色也需要双方查看和商量。",
+      "connection": "游戏的挑货与议价，是围绕货色、价格和交期安排的经营选择。梁记茶庄为虚构场景。"
+    },
+    "inspection": {
+      "artwork": "sampling",
+      "heading": "画中的验茶",
+      "observe": "人物从篮中取出茶叶，靠近察看、闻嗅；背后堆放着许多茶篮。你能找到前景的小狗吗？",
+      "connection": "游戏用看叶形、辨干湿、看汤色表达验货。0—100货色评分和抽样范围属于游戏规则。"
+    },
+    "roasting": {
+      "artwork": "roasting",
+      "heading": "一个翻茶，一个照应炉火",
+      "observe": "画中一人翻动炉上的茶叶，另一人在下方照应火。看看上下两处动作怎样配合。",
+      "connection": "游戏的拨炭、翻茶与回凉是简化互动；这幅较晚年代的制茶图用于工序题材参照，并非复焙步骤的逐项复原。"
+    },
+    "packing": {
+      "artwork": "packing",
+      "heading": "茶怎样装进箱里？",
+      "observe": "留意长木杵、打开的木箱和旁边的茶篮。画家记录了把茶叶压进运输容器的劳动。",
+      "connection": "游戏将包装简化为铺衬、装茶、封箱。此图约1850年，作为装箱题材对照，不代表本局所有包装材料的史实依据。"
+    },
+    "dock": {
+      "artwork": "canton",
+      "heading": "商馆前的大小船只",
+      "observe": "从岸边望向江面，比较小艇与帆船的体量。画中码头、船只和商馆相互连接。",
+      "connection": "游戏通过码头选船表现货栈与江上运输的衔接。路线、费用和天气由游戏规则决定。"
+    },
+    "vessel": {
+      "artwork": "canton",
+      "heading": "换到船上的视角",
+      "observe": "找到江面上带篷的小艇，再回想你刚站过的甲板。贸易景观里也有这些来往穿梭的小船。",
+      "connection": "货艇场景是参考贸易图像进行的艺术化创作。原画是远眺视角，并未展示本游戏的舱内与甲板布局。"
+    }
+  }
+}

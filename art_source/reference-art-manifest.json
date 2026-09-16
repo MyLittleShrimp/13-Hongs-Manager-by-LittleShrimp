@@ -1,0 +1,102 @@
+{
+  "retrieved": "2026-09-16",
+  "modifications": "None; original downloaded derivative retained, displayed uncropped in Godot",
+  "artworks": [
+    {
+      "key": "canton",
+      "title": "广州商馆与江面",
+      "original_title": "Canton Harbor and Factories with Foreign Flags",
+      "artist": "佚名（中国画家）",
+      "date": "约1805年",
+      "medium": "玻璃背绘",
+      "collection": "皮博迪埃塞克斯博物馆",
+      "accession": "E78680",
+      "image": "res://assets/references/canton_factories.jpg",
+      "license": "Public Domain（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "MIT Visualizing Cultures / Wikimedia Commons",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Canton_factories.jpg",
+      "catalogue_url": "https://visualizingcultures.mit.edu/rise_fall_canton_04/gallery_places/index.htm",
+      "credit": "Peabody Essex Museum / Jeffrey R. Dykes；图像副本来自 Wikimedia Commons",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c6/Canton_factories.jpg",
+      "bytes": 131426,
+      "dimensions": [
+        1219,
+        800
+      ],
+      "sha256": "9236f7c09aff8bb2dae86a7fa2b63e16f7ba9ff3a77daa29b2f74dba8ae16a5a"
+    },
+    {
+      "key": "sampling",
+      "title": "验茶",
+      "original_title": "Sampling the tea",
+      "artist": "佚名（中国画家）",
+      "date": "约1770年",
+      "medium": "纸本水彩",
+      "collection": "荷兰国立博物馆 Rijksmuseum",
+      "accession": "NG-1981-12-B",
+      "image": "res://assets/references/sampling_tea.jpg",
+      "license": "Public Domain（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "Rijksmuseum 馆藏与 IIIF 图像",
+      "source_url": "https://id.rijksmuseum.nl/200397293",
+      "catalogue_url": "https://www.rijksmuseum.nl/en/collection/object/Sampling-the-tea--905f440515b008a2aac12f6d6b3909f0",
+      "credit": "Rijksmuseum, Amsterdam",
+      "download_url": "https://iiif.micr.io/NVzoB/full/1200,/0/default.jpg",
+      "bytes": 329785,
+      "dimensions": [
+        1200,
+        1522
+      ],
+      "sha256": "77ede474ac52db136eafb6c348c47376835124dc8a3a3c0f3a527f6c9aea5b7e"
+    },
+    {
+      "key": "packing",
+      "title": "将茶叶压实入箱",
+      "original_title": "A man pounding tea leaves down into a large wooden box with a large pestle, watched by a small boy.",
+      "artist": "佚名（中国画家）",
+      "date": "约1850年",
+      "medium": "纸本水粉",
+      "collection": "Wellcome Collection（伦敦）",
+      "accession": "572197i / V0018611",
+      "image": "res://assets/references/packing_tea.jpg",
+      "license": "Public Domain Mark（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "Wellcome Collection 馆藏与 IIIF 图像",
+      "source_url": "https://wellcomecollection.org/works/ejnjhtgn",
+      "catalogue_url": "https://wellcomecollection.org/works/ejnjhtgn",
+      "credit": "Wellcome Collection",
+      "download_url": "https://iiif.wellcomecollection.org/image/V0018611/full/1600,/0/default.jpg",
+      "bytes": 403001,
+      "dimensions": [
+        1600,
+        1145
+      ],
+      "sha256": "c9d9023d8ff684da11be2a6e08e5c85210ed98f2b3c357e739d41ac7635251dd"
+    },
+    {
+      "key": "roasting",
+      "title": "炉上翻茶与添火",
+      "original_title": "A man stirs tea leaves drying over a brick oven, while another tends the fire.",
+      "artist": "佚名（中国画家）",
+      "date": "约1850年",
+      "medium": "纸本水粉",
+      "collection": "Wellcome Collection（伦敦）",
+      "accession": "572158i / V0018603",
+      "image": "res://assets/references/roasting_tea.jpg",
+      "license": "Public Domain Mark（公有领域）",
+      "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "source_name": "Wellcome Collection 馆藏与 IIIF 图像",
+      "source_url": "https://wellcomecollection.org/works/qv74uhng",
+      "catalogue_url": "https://wellcomecollection.org/works/qv74uhng",
+      "credit": "Wellcome Collection",
+      "download_url": "https://iiif.wellcomecollection.org/image/V0018603/full/1600,/0/default.jpg",
+      "bytes": 454217,
+      "dimensions": [
+        1600,
+        1152
+      ],
+      "sha256": "85e9726d298aaf9db404f193bd47e9b955b56aafa8eac9928960812e07de6e06"
+    }
+  ]
+}

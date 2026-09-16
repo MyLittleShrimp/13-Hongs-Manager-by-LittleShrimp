@@ -1,8 +1,21 @@
 # 十三行 · 茶船将发
 
-**单机茶叶篇 v0.7.2｜Godot 4.7.2｜横屏鼠标／触摸**
+**单机茶叶篇 v0.8.0｜Godot 4.7.2｜横屏鼠标／触摸**
 
-**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.7.2 更新说明](docs/releases/v0.7.2.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.7.2-Windows-x64.zip`，包含两首背景音乐和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.8.0 更新说明](docs/releases/v0.8.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.8.0-Windows-x64.zip`，包含两首背景音乐、全部场景与原画参考图和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+
+## v0.8.0 外销画与晴雨场景
+
+- 金额统一补上「币」，例如「花费20币」「谈成可省11币」，对白、货单与账本同步更新。
+- 七个场景都有「外销画 · 看看场景」入口，展示4幅真实历史作品，可放大查看，附年代、馆藏和来源。参见 [图像来源与对应范围](docs/外销画参考来源.md)。
+- 内置ImageGen新增14张天气背景，七个场景各有晴、阴、风雨三种画面；人物、茶箱、雨丝和天气提示同步变化。
+- 天气展示读取已发生的经营事件，不额外抽取随机数；货色、成本、概率和盈亏算法保持一致。
+
+![游戏中的历史原作参考窗口](docs/images/history-art.png)
+
+![风雨中的茶市与金额单位](docs/images/weather-market.png)
+
+以下旧版本截图与记录保留当时的界面用语。
 
 ## v0.7.2 现钱与交货天数
 
@@ -127,7 +140,7 @@ python tools/run_godot.py --headless --editor --import
 | 数字分身 | 保留纹理替换接口；生成端与现场联调按用户要求后置 |
 | 信息呈现 | 场景占主体，底部短对话和选项；详细账本与知识说明按需打开 |
 
-美术由**内置 ImageGen**生成，原图已复制到工程。目前合计16张：7个场景、6个人物、2个茶箱和1张六件工具图集。女主角提示词在 `art_source/prompts/player_female_v001.txt`；前版提示词在 `art_source/v0.4-prompts.json`、`art_source/v0.4-tools-prompt.txt`；来源见 `docs/资产台账.md`。
+游戏美术由**内置 ImageGen**生成，原图已复制到工程。目前合计30张PNG：21张背景（7场景×3天气）、6个人物、2个茶箱和1张六件工具图集。另有4张真实历史作品JPEG，独立记录来源。天气提示词在 `art_source/prompts/weather/v0.8-weather.json`，女主角提示词在 `art_source/prompts/player_female_v001.txt`；前版提示词在 `art_source/v0.4-prompts.json`、`art_source/v0.4-tools-prompt.txt`；来源见 `docs/资产台账.md`。
 
 ## 一局怎么玩
 

@@ -18,28 +18,28 @@ static func before_offer(t) -> String:
 			return "取这批货要%d天。你这单限%d天；若还价没谈成，还会多等1或2天。船期可不等人。" % [t.supplier.ticks, t.contract.deadline]
 		2:
 			return "桌上是茶样，不是验货结论。成交后可以抽样，也能逐箱复核；让了价，也得照样验清。"
-	return "十箱%s，今日共%d。你有船期，我有本钱。这口价，你打算怎么谈？" % [t.supplier.name, t.supplier.quote]
+	return "十箱%s，今日共%d币。你有船期，我有本钱。这口价，你打算怎么谈？" % [t.supplier.name, t.supplier.quote]
 
 static func reply(t) -> Array:
 	var r: Dictionary = t.bargain_result
 	if t.bargain_beat == 1:
 		if r.saving > 0:
-			return ["player", "货单我收好了，省下%d。梁老板，再带我去验茶台，价钱和货色都得记清。" % r.saving]
+			return ["player", "货单我收好了，省下%d币。梁老板，再带我去验茶台，价钱和货色都得记清。" % r.saving]
 		if r.delay > 0:
 			return ["player", "这回没让下价，还多耗了%d天。把货单记清，接下来验货和船期都得算紧些。" % r.delay]
 		return ["player", "价钱记清，十箱点齐。省下还价的工夫，接下来把货色验明白。"]
 	if r.method == 0:
-		return ["merchant", "爽快，按%d成交。我把货单写好，咱们不在还价上耽搁。" % r.paid]
+		return ["merchant", "爽快，按%d币成交。我把货单写好，咱们不在还价上耽搁。" % r.paid]
 	if r.success:
-		return ["merchant", ("十箱一起收，就匀你%d。按%d记账，验茶时再把箱里的货看仔细。" if r.method == 1 else "这口价压得紧……好，这回让%d，按%d记。茶样在这儿，货还是要验。") % [r.saving, r.paid]]
+		return ["merchant", ("十箱一起收，就匀你%d币。按%d币记账，验茶时再把箱里的货看仔细。" if r.method == 1 else "这口价压得紧……好，这回让%d币，按%d币记。茶样在这儿，货还是要验。") % [r.saving, r.paid]]
 	if r.method == 1:
-		return ["merchant", "这口价实在让不动，还是%d。咱们来回谈，已经多耗了%d天。" % [r.paid, r.delay]]
-	return ["merchant", "本钱摆着，再低做不了。来回多耗了%d天，最后还是按%d成交。货单给你。" % [r.delay, r.paid]]
+		return ["merchant", "这口价实在让不动，还是%d币。咱们来回谈，已经多耗了%d天。" % [r.paid, r.delay]]
+	return ["merchant", "本钱摆着，再低做不了。来回多耗了%d天，最后还是按%d币成交。货单给你。" % [r.delay, r.paid]]
 
 static func inspection_open(t) -> String:
 	var r: Dictionary = t.bargain_result
 	if r.is_empty(): return "茶样已摆上桌，验到什么程度，由你决定。"
-	if r.saving > 0: return "刚才让的%d已写进货单。现在开箱看看，验到什么程度，由你决定。" % r.saving
+	if r.saving > 0: return "刚才让的%d币已写进货单。现在开箱看看，验到什么程度，由你决定。" % r.saving
 	if r.delay > 0: return "还价已多耗%d天，验茶也要工夫。赶船要紧，箱里的货色也得心里有数。" % r.delay
 	return "价钱已结清，茶样也摆好了。凭样省工，开箱更有把握，你来定。"
 
@@ -48,7 +48,7 @@ static func inspection_response(t) -> String:
 	var r: Dictionary = t.bargain_result
 	var bounds: Vector2i = t.quality_bounds()
 	if bounds.y < int(t.contract.quality):
-		return "让价省下%d，可这批货还得处理。先看看差距。" % r.saving if r.get("saving", 0) > 0 else "价钱谈妥了，货色还有差距。先算补救要花多少。"
+		return "让价省下%d币，可这批货还得处理。先看看差距。" % r.saving if r.get("saving", 0) > 0 else "价钱谈妥了，货色还有差距。先算补救要花多少。"
 	if bounds.x < int(t.contract.quality):
 		return "抽样范围跨着订单的门槛，还不能确定达标。我得给可能的货色差距留些余地。"
 	return "货色有了依据，再看看包装和船期怎么安排。"
@@ -59,5 +59,5 @@ static func ending_echo(t) -> String:
 	if r.delay > 0:
 		return "陈叔，茶市还价多耗了%d天。以后谈价前，我会先给验茶和运货留足工夫。" % r.delay
 	if r.saving > 0:
-		return "陈叔，茶市虽省了%d，最后还是亏了本。我得把后面的支出与风险一起算。" % r.saving if t.result.profit < 0 else "陈叔，茶市省下%d只是开头；这笔生意的收支，还得一路算到交货。" % r.saving
+		return "陈叔，茶市虽省了%d币，最后还是亏了本。我得把后面的支出与风险一起算。" % r.saving if t.result.profit < 0 else "陈叔，茶市省下%d币只是开头；这笔生意的收支，还得一路算到交货。" % r.saving
 	return "陈叔，这次照价成交，没在还价上等。下次我会把价钱、货色和船期一起掂量。"

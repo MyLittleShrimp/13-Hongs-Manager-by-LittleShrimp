@@ -14,6 +14,7 @@ const QualityDisplay = preload("res://scripts/quality_display.gd")
 const WorkshopPerformance = preload("res://scripts/workshop_performance.gd")
 const InputGuard = preload("res://scripts/input_guard.gd")
 const MoneyIcon = preload("res://scripts/money_icon.gd")
+const WeatherScene = preload("res://scripts/weather_scene.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -33,6 +34,10 @@ var logger = SessionLog.new()
 var font_body: SystemFont
 var font_title: SystemFont
 var background: TextureRect
+var previous_background: TextureRect
+var weather_fade: Tween
+var current_weather := -1
+var history_catalog: Dictionary
 var world: Control
 var atmosphere
 var player_actor
@@ -90,6 +95,7 @@ func _ready() -> void:
 	test_mode = "--self-test" in args or "--ui-tour" in args
 	screenshot_mode = "--ui-tour" in args
 	settings = JSON.parse_string(FileAccess.get_file_as_string("res://data/kiosk.json"))
+	history_catalog = JSON.parse_string(FileAccess.get_file_as_string("res://data/history_art.json"))
 	avatar_profile = JSON.parse_string(FileAccess.get_file_as_string("res://data/avatar_profile.json"))
 	default_avatar_profile = avatar_profile.duplicate(true)
 	character_profiles.append(default_avatar_profile.duplicate(true))
@@ -101,6 +107,8 @@ func _ready() -> void:
 	if compatibility_mode:
 		logger.record("environment", model.session_id, {"version":app_version, "os":OS.get_name(), "os_version":OS.get_version(), "architecture":Engine.get_architecture_name(), "engine":Engine.get_version_info().string, "max_fps":Engine.max_fps})
 	background = _texture(self, "res://assets/backgrounds/counter.png", Rect2(0, 0, 1920, 1080), true)
+	previous_background = _texture(self, "res://assets/backgrounds/counter.png", Rect2(0, 0, 1920, 1080), true)
+	previous_background.visible = false
 	world = Control.new()
 	world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(world)
@@ -347,9 +355,20 @@ func _render() -> void:
 func _update_world() -> void:
 	var place: String = model.location()
 	var changed := place != current_location
+	var sky: int = WeatherScene.state(model)
+	if changed or sky != current_weather:
+		if weather_fade: weather_fade.kill()
+		previous_background.texture = background.texture
+		background.texture = load(WeatherScene.texture_path(place, sky))
+		previous_background.visible = not changed and current_weather >= 0
+		previous_background.modulate.a = 1.0
+		if previous_background.visible:
+			weather_fade = create_tween()
+			weather_fade.tween_property(previous_background, "modulate:a", 0.0, 0.65)
+			weather_fade.tween_callback(func(): previous_background.visible = false; previous_background.texture = null)
+		current_weather = sky
 	if changed:
 		current_location = place
-		background.texture = load("res://assets/backgrounds/%s.png" % place)
 		player_actor.position = Vector2(250, 790)
 		npc_actor.position = Vector2(1360, 790)
 		player_actor.walk_to(Vector2(510, 790), 0.8)
@@ -386,8 +405,11 @@ func _update_world() -> void:
 	player_actor.scale = Vector2.ONE * scene_scale
 	npc_actor.scale = Vector2.ONE * scene_scale
 	atmosphere.place = place
-	atmosphere.wet = model.weather > 0 or model.cargo_event in ["squall", "leak"]
-	atmosphere.storm = model.cargo_event == "squall"
+	atmosphere.wet = sky == 2
+	atmosphere.storm = sky == 2
+	player_actor.modulate = WeatherScene.actor_tint(sky)
+	npc_actor.modulate = WeatherScene.actor_tint(sky)
+	cargo_group.modulate = WeatherScene.actor_tint(sky)
 	crate.visible = place in ["market", "packing", "dock"]
 	if model.stage != "bargain_result":
 		market_exchange.active = false
@@ -429,16 +451,17 @@ func _update_world() -> void:
 		crate.position = Vector2(1560, 579)
 		crate.size = Vector2(260, 175)
 		crate.modulate = Color("a7957c") if model.pending_delivery.get("damaged", false) else Color.WHITE
+	crate.modulate *= WeatherScene.actor_tint(sky)
 
 func _header() -> void:
 	_panel(page, Rect2(26, 22, 1868, 84), DARK)
 	_label(page, "十三行  /  茶船将发", Rect2(52, 30, 400, 62), 33, GOLD, true)
 	_money_icon(page, Rect2(475, 46, 32, 32))
-	_label(page, "现钱  %d" % model.cash if model.cash >= 0 else "缺口  %d" % -int(model.cash), Rect2(516, 34, 223, 56), 29)
+	_label(page, "现钱  %d币" % model.cash if model.cash >= 0 else "缺口  %d币" % -int(model.cash), Rect2(516, 34, 223, 56), 29)
 	var overdue: bool = not model.contract.is_empty() and model.ticks > model.contract.deadline
 	_label(page, _delivery_time_text(), Rect2(750, 34, 315, 56), 29, Color("f0a278") if overdue else PAPER).name = "DeliveryTime"
 	if model.debt_due() > 0:
-		_label(page, "待还 %d" % model.debt_due(), Rect2(1080, 34, 175, 56), 25, GOLD)
+		_label(page, "待还 %d币" % model.debt_due(), Rect2(1080, 34, 175, 56), 25, GOLD)
 	_button(page, "ledger", "账本", Rect2(1270, 29, 130, 68), _show_ledger)
 	_button(page, "help", "帮助", Rect2(1415, 29, 130, 68), _show_help)
 	_button(page, "sound", "声音设置", Rect2(1560, 29, 160, 68), _show_audio_settings)
@@ -446,19 +469,17 @@ func _header() -> void:
 	var place_name: String = {"counter":"行号 · 账房", "market":"茶市 · 梁记茶庄", "inspection":"茶庄 · 验茶台", "roasting":"货栈 · 焙茶间", "packing":"货栈 · 装箱间", "dock":"江岸 · 驳运码头", "vessel":"珠江 · 货艇上"}[current_location]
 	_panel(page, Rect2(40, 134, 420, 94), DARK)
 	_label(page, place_name, Rect2(60, 140, 382, 44), 29, GOLD, true)
-	var weather_text: String = "出门时：" + model.weather_name()
-	if model.stage == "voyage":
-		weather_text = {"squall":"江上突遇风雨", "leak":"舱底渗水，等待处置", "clear":"这一程水路尚平稳"}[model.cargo_event]
-	_label(page, weather_text, Rect2(60, 188, 380, 30), 21, MUTED)
+	_label(page, WeatherScene.caption(model), Rect2(60, 188, 380, 30), 21, MUTED).name = "WeatherCaption"
 	var chapter: int = model.chapter()
 	_panel(page, Rect2(540, 136, 840, 66), DARK)
 	for i in 5:
 		_label(page, ("● " if i <= chapter else "○ ") + ["接单", "备茶", "封箱", "驳运", "交账"][i], Rect2(562 + i * 163, 145, 160, 47), 25, GOLD if i == chapter else MUTED)
 	_button(page, "journey", "这一趟的经历", Rect2(43, 249, 250, 63), _show_journey)
+	_button(page, "scene_art", "外销画 · 看看场景", Rect2(43, 738, 270, 58), _show_history)
 	if not model.contract.is_empty():
 		_panel(page, Rect2(1482, 133, 400, 147), DARK)
 		_label(page, model.contract.name + " · 十箱茶", Rect2(1503, 147, 355, 38), 27, GOLD)
-		_label(page, "货色要求 %d  ·  单价 %d" % [model.contract.quality, model.contract.price], Rect2(1503, 193, 355, 34), 23)
+		_label(page, "货色要求 %d  ·  每箱 %d币" % [model.contract.quality, model.contract.price], Rect2(1503, 193, 355, 34), 23)
 		_label(page, model.quality_report, Rect2(1503, 237, 355, 30), 23, MUTED)
 	idle_hint = _label(page, "轻触下方选项，让这笔生意继续。", Rect2(630, 745, 680, 40), 25, GOLD)
 	idle_hint.visible = false
@@ -534,53 +555,53 @@ func _choices() -> Array:
 		"intro": return [["我来试试", "接过账本，查看订单"], ["请陈叔指点", "先听一句生意经"]]
 		"contract":
 			for c in model.data.contracts:
-				options.append([c.name + " · 逾期每天扣%d" % c.penalty, "单价%d · %d天内交货 · 货色≥%d" % [c.price, c.deadline, c.quality]])
+				options.append([c.name + " · 逾期每天扣%d币" % c.penalty, "每箱%d币 · %d天内交货 · 货色≥%d" % [c.price, c.deadline, c.quality]])
 		"market":
 			for i in 3:
 				var s: Dictionary = model.data.suppliers[i]
-				options.append([s.name + " · 花费%d" % model.quotes[i], "取货%d天 · %s" % [s.ticks, s.description]])
+				options.append([s.name + " · 花费%d币" % model.quotes[i], "取货%d天 · %s" % [s.ticks, s.description]])
 		"bargain":
 			var quote := int(model.supplier.quote)
 			return [["照这个价，早些取货", "照价成交 · 不额外耗时"],
-				["十箱一起收，匀我一点", "谈成可省 %d" % int(round(quote * 0.08))],
-				["这口价，还得再让些", "谈成可省 %d" % int(round(quote * 0.18))]]
+				["十箱一起收，匀我一点", "谈成可省 %d币" % int(round(quote * 0.08))],
+				["这口价，还得再让些", "谈成可省 %d币" % int(round(quote * 0.18))]]
 		"bargain_chat": return [["这批货从哪里来？", "问货源 · 了解品质起伏"], ["赶得上我的船期吗？", "问交期 · 算取货与还价时间"], ["茶样能代表整批吗？", "问货色 · 了解验货的作用"]]
 		"bargain_result":
 			return [["接过货单", "十箱货 · 把价钱和用时记清"]] if model.bargain_beat == 0 else [["请带路，去验茶", "前往验茶台 · 再定验货深度"]]
-		"inspection": return [["凭样收货", "花费0 · 耗时0天 · 货色未知"], ["抽样开箱", "花费8 · 耗时1天 · 货色区间"], ["逐箱复核", "花费18 · 耗时2天 · 准确货色"]]
-		"remedy": return [["准备装运", "不加支出 · 先检查货色风险"], ["%s · 花费20起 · 1—3天" % ("再次复焙" if model.rework_count > 0 else "复焙整理"), "常火：" + model.remedy_preview(12)], ["补价换货 · 花费34 · 2天", model.remedy_preview(24)]]
+		"inspection": return [["凭样收货", "花费0币 · 耗时0天 · 货色未知"], ["抽样开箱", "花费8币 · 耗时1天 · 货色区间"], ["逐箱复核", "花费18币 · 耗时2天 · 准确货色"]]
+		"remedy": return [["准备装运", "不加支出 · 先检查货色风险"], ["%s · 花费20币起 · 1—3天" % ("再次复焙" if model.rework_count > 0 else "复焙整理"), "常火：" + model.remedy_preview(12)], ["补价换货 · 花费34币 · 2天", model.remedy_preview(24)]]
 		"roast_plan":
 			for p in model.ROAST_PLANS:
-				options.append(["%s · 花费%d · %d天" % [p.name, p.cost, p.ticks], model.remedy_preview(int(p.gain))])
+				options.append(["%s · 花费%d币 · %d天" % [p.name, p.cost, p.ticks], model.remedy_preview(int(p.gain))])
 		"inspection_work", "roasting_work": return []
 		"shipment_review": return [["回去再处理", "不花钱 · 不重抽货色"], ["带风险装运", "未达标时另谈价 · 可能亏本"]]
 		"packing":
 			for p in model.data.packing:
-				options.append([p.name + " · 花费%d" % p.cost, "耗时%d天 · %s" % [p.ticks, p.description]])
+				options.append([p.name + " · 花费%d币" % p.cost, "耗时%d天 · %s" % [p.ticks, p.description]])
 		"packing_work": return []
 		"packing_seal": return [["请阿顺点货装船", "十箱已封妥 · 前往驳运码头"]]
 		"dock":
 			for r in model.data.routes:
-				options.append([r.name + " · 花费%d" % r.cost, "耗时%d天 · %s" % [r.ticks, r.description]])
+				options.append([r.name + " · 花费%d币" % r.cost, "耗时%d天 · %s" % [r.ticks, r.description]])
 		"voyage":
 			var titles: Array
 			var detail: Array
 			if model.cargo_event == "squall":
 				titles = ["靠岸避风", "抢在船期前赶路", "临时加篷"]
-				detail = ["花费0 · 多用2天", "花费0 · 不加时", "花费12 · 多用1天"]
+				detail = ["花费0币 · 多用2天", "花费0币 · 不加时", "花费12币 · 多用1天"]
 			elif model.cargo_event == "leak":
 				titles = ["停船补漏", "加紧舀水，继续赶路"]
-				detail = ["花费12 · 多用1天", "花费0 · 不加时"]
+				detail = ["花费12币 · 多用1天", "花费0币 · 不加时"]
 			else:
 				titles = ["雇帮手过驳", "照常交接"]
-				detail = ["花费8 · 节省1天", "花费0 · 不加时"]
+				detail = ["花费8币 · 节省1天", "花费0币 · 不加时"]
 			for i in titles.size():
 				options.append([titles[i], "%s · 损货约%d%%" % [detail[i], roundi(model.risk(i) * 100)]])
 		"arrival": return [["回行号结账", "看看这笔生意的实际盈亏"]]
 		"voyage_report": return [["靠岸交验", "点清茶箱，与商船交接人会面"]]
 		"acceptance":
 			var d: Dictionary = model.pending_delivery
-			return [["接受折价 · 原单未达标", "货款%d（已扣迟交%d）" % [d.due, d.penalty]], ["取消原单，转售止损", "卖得%d · 另付15改单费" % d.resale_gross]]
+			return [["接受折价 · 原单未达标", "货款%d币（已扣迟交%d币）" % [d.due, d.penalty]], ["取消原单，转售止损", "卖得%d币 · 改单费15币" % d.resale_gross]]
 	return options
 
 func _render_story() -> void:
@@ -600,11 +621,8 @@ func _render_story() -> void:
 			var enabled: bool = model.available(i)
 			if not enabled: value = str(options[i][0]) + "\n" + model.unavailable_reason(i)
 			var expected: String = model.stage
-			var button: Button = _button(page, "choice_%d" % i, value, Rect2(start + i * (width + 22), 931, width, 115),
+			_button(page, "choice_%d" % i, value, Rect2(start + i * (width + 22), 931, width, 115),
 				_choose.bind(i, expected, model.revision), count == 1, not enabled)
-			if model.stage == "bargain" and i > 0 and enabled:
-				var line_width := font_body.get_string_size(str(options[i][1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 27).x
-				_money_icon(button, Rect2((width - line_width) * 0.5 - 33, 64, 27, 27))
 	if model.stage in ["packing_work", "roasting_work"]:
 		_render_workbench()
 	elif model.stage in ["market", "bargain", "bargain_chat", "bargain_result"]:
@@ -636,9 +654,7 @@ func _render_story() -> void:
 		_panel(page, Rect2(670, 328, 590, 205), DARK, GOLD)
 		_label(page, "原单货色未达标", Rect2(699, 342, 535, 60), 39, GOLD, true)
 		_label(page, "要求%d · 到货%d\n请决定折价成交，或转售止损。" % [model.contract.quality, model.pending_delivery.quality], Rect2(699, 414, 535, 90), 29)
-	else:
-		_button(page, "look", "◎  留意场景", Rect2(790, 666, 350, 77), _show_history)
-	_label(page, "确认行动才推进天数，阅读思考不计时。", Rect2(61, 752, 575, 31), 21, PAPER)
+	_label(page, "确认行动才推进天数，阅读思考不计时。", Rect2(335, 752, 575, 31), 21, PAPER)
 	if model.can_borrow() or model.stage in ["packing", "dock"]:
 		_button(page, "support", "资金不足？找陈叔" if model.cash < 20 else "陈叔 · 周转与赊账", Rect2(42, 649, 397, 87), _show_support, model.cash < 20, action_busy)
 
@@ -750,12 +766,12 @@ func _render_market_counter() -> void:
 	if model.stage == "bargain_result":
 		var r: Dictionary = model.bargain_result
 		_label(receipt, "成交货单 · 十箱茶", Rect2(30, 12, 448, 51), 32, INK, true)
-		_label(receipt, "实付 %d" % r.paid, Rect2(30, 71, 448, 69), 47, INK)
-		_label(receipt, "让利 %d  ·  还价多耗 %d天" % [r.saving, r.delay], Rect2(30, 147, 448, 40), 24, INK)
+		_label(receipt, "实付 %d币" % r.paid, Rect2(30, 71, 448, 69), 47, INK)
+		_label(receipt, "让利 %d币  ·  还价多耗 %d天" % [r.saving, r.delay], Rect2(30, 147, 448, 40), 24, INK)
 		_label(receipt, "取货另耗%d天 · 茶货尚未验明" % r.pickup_ticks, Rect2(30, 196, 448, 40), 24, INK)
 	else:
 		_label(receipt, str(model.supplier.name) + " · 十箱", Rect2(30, 12, 448, 51), 32, INK, true)
-		_label(receipt, "报价 %d" % model.supplier.quote, Rect2(30, 71, 448, 69), 47, INK)
+		_label(receipt, "报价 %d币" % model.supplier.quote, Rect2(30, 71, 448, 69), 47, INK)
 		_label(receipt, "取货 %d天  ·  货色待验" % model.supplier.ticks, Rect2(30, 149, 448, 40), 25, INK)
 		_label(receipt, "谈价前，先把想问的问清。", Rect2(30, 198, 448, 37), 23, INK)
 		_button(page, "market_talk", "先问一句 · 不耗天数" if model.stage == "bargain" else "回到议价", Rect2(757, 704, 406, 72), _market_conversation.bind(model.stage == "bargain", model.revision))
@@ -771,15 +787,15 @@ func _render_result() -> void:
 	var r: Dictionary = model.result
 	var card := _panel(page, Rect2(635, 179, 686, 587), PAPER, GOLD)
 	_label(card, _fulfillment_text(), Rect2(40, 24, 610, 67), 32, INK if r.contract_met else RUST, true)
-	_label(card, "收支持平" if r.profit == 0 else (("赚了 %d" % r.profit) if r.profit > 0 else ("亏了 %d" % -int(r.profit))), Rect2(40, 95, 600, 87), 63, INK if r.profit >= 0 else RUST, true)
+	_label(card, "收支持平" if r.profit == 0 else (("赚了 %d币" % r.profit) if r.profit > 0 else ("亏了 %d币" % -int(r.profit))), Rect2(40, 95, 600, 87), 63, INK if r.profit >= 0 else RUST, true)
 	var rows := [
 		["货物验收", "到货%d箱 · 达标%d箱" % [r.delivered, r.qualified]],
-		["转售货值" if r.mode == "resale" else "交货货值", "%d" % r.gross],
-		["改单费用" if r.mode == "resale" else "迟交扣款", "−%d" % (r.cancellation_fee if r.mode == "resale" else r.penalty)],
-		["实际货款", "%d" % r.due],
-		["借赊清算", "%d（明细见账本）" % r.debt_settlement],
-		["全部支出", "−%d" % r.cost],
-		["剩余现钱" if r.final_cash >= 0 else "清算缺口", "%d" % absi(int(r.final_cash))]]
+		["转售货值" if r.mode == "resale" else "交货货值", "%d币" % r.gross],
+		["改单费用" if r.mode == "resale" else "迟交扣款", "−%d币" % (r.cancellation_fee if r.mode == "resale" else r.penalty)],
+		["实际货款", "%d币" % r.due],
+		["借赊清算", "%d币（明细见账本）" % r.debt_settlement],
+		["全部支出", "−%d币" % r.cost],
+		["剩余现钱" if r.final_cash >= 0 else "清算缺口", "%d币" % absi(int(r.final_cash))]]
 	for i in rows.size():
 		_label(card, rows[i][0], Rect2(42, 200 + i * 49, 206, 43), 27, INK)
 		_label(card, rows[i][1], Rect2(248, 200 + i * 49, 408, 43), 25, INK)
@@ -790,7 +806,7 @@ func _render_result() -> void:
 	elif not r.contract_met:
 		line = "这单虽然赚了钱，原单仍未达标。下次再把货色、数量与交期一起照应好。"
 	if r.funding_gap > 0:
-		line = "这趟亏掉了本金，清算还差%d。缺口没有免除，账本会记下这次经营的代价。" % r.funding_gap
+		line = "这趟亏掉了本金，清算还差%d币。缺口没有免除，账本会记下这次经营的代价。" % r.funding_gap
 	_label(page, "陈叔", Rect2(68, 812, 285, 84), 29, GOLD, true)
 	_label(page, line, Rect2(380, 812, 1400, 84), 30)
 	_button(page, "review", "翻开详细账本", Rect2(336, 934, 588, 112), _show_ledger)
@@ -932,7 +948,7 @@ func _close_overlay() -> void:
 	idle_seconds = 0
 
 func _show_help() -> void:
-	_modal("陈叔的生意经", "金额与天数为游戏设定，贸易流程经过压缩。\n货色为0—100分；货色、数量、交期都满足，原单才算达标。\n\n阅读与思考不耗天数，确认经营行动才推进时间。\n验茶：抽样查看两项，复核查看三项，再确认验茶结果。\n复焙：先选火候，再取工具操作，最多两次。\n装箱：依次取衬料、茶货、箱盖与绳，再点箱口。\n\n现钱不足可借款一次，或赊箱、赊运，最后还账。\n货色不足可再处理；带风险装运，到货后另谈价格。\n\n单机停留不清空。F11切换全屏；Esc打开结束菜单。", "help", 25)
+	_modal("陈叔的生意经", "“币”为游戏记账单位，金额与天数为压缩后的游戏设定。\n货色为0—100分；货色、数量、交期都满足，原单才算达标。\n\n阅读与思考不耗天数，确认经营行动才推进时间。\n验茶：抽样查看两项，复核查看三项，再确认验茶结果。\n复焙：先选火候，再取工具操作，最多两次。\n装箱：依次取衬料、茶货、箱盖与绳，再点箱口。\n\n现钱不足可借款一次，或赊箱、赊运，最后还账。\n货色不足可再处理；带风险装运，到货后另谈价格。\n\n单机停留不清空。F11切换全屏；Esc打开结束菜单。", "help", 25)
 
 func _show_audio_settings() -> void:
 	var panel := _modal("声音设置", "", "audio")
@@ -992,16 +1008,16 @@ func _show_support() -> void:
 	if not model.can_borrow() and model.stage not in ["packing", "dock"]: return
 	var ticket: int = model.revision
 	var panel := _modal("陈叔 · 生意遇坎，先想办法", "", "support")
-	var text := "现钱%d · 结算待还%d。现钱用完不会立即结束生意。\n\n" % [model.cash, model.debt_due()]
-	text += "周转：现在借60，结算还66，每局一次。\n"
-	if model.stage == "packing": text += "赊用旧箱：现在付0，结算扣12，耗2天，防潮较弱。\n"
-	elif model.stage == "dock": text += "候船赊运：现在付0，结算扣18，耗3天，风险较高。\n"
+	var text := "现钱%d币 · 结算待还%d币。现钱用完不会立即结束生意。\n\n" % [model.cash, model.debt_due()]
+	text += "周转：现在借60币，结算还66币，每局一次。\n"
+	if model.stage == "packing": text += "赊用旧箱：现在付0币，结算扣12币，耗2天，防潮较弱。\n"
+	elif model.stage == "dock": text += "候船赊运：现在付0币，结算扣18币，耗3天，风险较高。\n"
 	else: text += "之后若没钱装箱或运船，还能选择赊箱、赊运。\n"
 	text += "\n这些钱都要还；最后可能亏本或出现资金缺口。"
 	_label(panel, text, Rect2(50, 127, 1060, 315), 27, INK)
-	_button(panel, "borrow", "借60 · 结算还66" if model.can_borrow() else "本局周转已使用", Rect2(50, 494, 510, 93), _support_action.bind("borrow", ticket), true, not model.can_borrow())
+	_button(panel, "borrow", "借60币 · 结算还66币" if model.can_borrow() else "本局周转已使用", Rect2(50, 494, 510, 93), _support_action.bind("borrow", ticket), true, not model.can_borrow())
 	if model.stage in ["packing", "dock"]:
-		_button(panel, "defer", "赊箱 · 结算付12" if model.stage == "packing" else "赊运 · 结算付18", Rect2(584, 494, 526, 93), _support_action.bind("defer", ticket))
+		_button(panel, "defer", "赊箱 · 结算付12币" if model.stage == "packing" else "赊运 · 结算付18币", Rect2(584, 494, 526, 93), _support_action.bind("defer", ticket))
 
 func _support_action(kind: String, ticket: int) -> void:
 	if action_busy or overlay_kind != "support": return
@@ -1012,16 +1028,45 @@ func _support_action(kind: String, ticket: int) -> void:
 	_render()
 	transition_guard = maxf(transition_guard, 0.4)
 
-func _show_history() -> void:
-	var info: String = {
-		"counter":"行号组织贸易\n\n这里的你是行号采购管事，负责采办与交付。行商、采买者和船家各有分工。游戏把这些合作浓缩在一单茶的旅程中。",
-		"market":"货色与茶样\n\n样品帮助买卖双方沟通要求。游戏把外观、干燥状况与整批一致性合成「货色」指标，方便理解验货的作用。",
-		"packing":"茶箱为什么要衬、要扎？\n\n运输中的潮气、搬动和等待都可能影响货物。这里的三步封箱是互动示意；材料与工序细节仍需馆方资料审定。",
-		"dock":"小艇连接货栈与外港\n\n香港艺术馆的外销艺术说明介绍了黄埔停泊的洋船与广州之间的货艇驳运。这里的码头是这条链路的示意，场景并非实测复原。",
-		"inspection":"茶样与货色\n\n看叶形、辨干湿、看汤色，是本游戏观察品质的三个入口。准确货色由付费复核给出，抽样仍有范围。画中茶样是示意，不对应真实茶叶评级。",
-		"roasting":"复焙与船期\n\n这里把处理方式简化为三种火候。货色评分：常火提升12分，慢火14分，快火8分。费用、时间和提升值是游戏规则，操作动画不是制茶教学。",
-		"vessel":"在货艇上\n\n包装、路线和临场应对共同影响损货概率。看到雨并不等于一定损货；同一场风雨，处置与运气都可能改变结局。"}[current_location]
-	_modal("停一停，看看身边", info, "history")
+func _show_history(enlarged: bool = false) -> void:
+	var entry: Dictionary = history_catalog.scenes[current_location]
+	var art: Dictionary = history_catalog.artworks[entry.artwork]
+	_close_overlay()
+	overlay = Control.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	overlay_kind = "history"
+	workshop_performance.paused = true
+	_rect(overlay, Rect2(0, 0, 1920, 1080), Color(0.02, 0.06, 0.04, 0.82))
+	var panel := _panel(overlay, Rect2(20, 20, 1880, 1040) if enlarged else Rect2(125, 70, 1670, 940), PAPER, GOLD)
+	_label(panel, "外销画里的十三行 · " + str(entry.heading), Rect2(42, 24, 1585, 70), 39, INK, true)
+	if enlarged:
+		_texture(panel, art.image, Rect2(38, 102, 1804, 822)).name = "HistoryArtwork"
+		_button(panel, "history_back", "返回图画说明", Rect2(42, 947, 880, 67), _show_history.bind(false))
+		_button(panel, "close_help", "回到场景", Rect2(948, 947, 890, 67), _close_overlay, true)
+		return
+	_panel(panel, Rect2(38, 110, 895, 661), Color("e5dbc5"))
+	_texture(panel, art.image, Rect2(50, 122, 871, 637)).name = "HistoryArtwork"
+	_label(panel, "《%s》" % art.title, Rect2(972, 110, 650, 67), 33, INK, true)
+	_label(panel, "%s · %s · %s\n%s\n藏品号：%s" % [art.artist, art.date, art.medium, art.collection, art.accession], Rect2(974, 185, 646, 115), 24, INK)
+	_label(panel, "看画里的细节", Rect2(974, 325, 646, 48), 29, INK, true)
+	_label(panel, entry.observe, Rect2(974, 380, 646, 122), 26, INK)
+	_label(panel, "回到这笔生意", Rect2(974, 524, 646, 48), 29, INK, true)
+	_label(panel, entry.connection, Rect2(974, 579, 646, 180), 26, INK)
+	_label(panel, "历史原作数字图像 · 场景题材参照 · 中文题名为便于阅读的译名", Rect2(43, 785, 1570, 38), 23, INK)
+	_button(panel, "history_zoom", "放大看画", Rect2(42, 842, 508, 67), _show_history.bind(true))
+	_button(panel, "history_source", "来源与授权", Rect2(574, 842, 508, 67), _show_history_source)
+	_button(panel, "close_help", "回到场景", Rect2(1106, 842, 522, 67), _close_overlay, true)
+
+func _show_history_source() -> void:
+	var entry: Dictionary = history_catalog.scenes[current_location]
+	var art: Dictionary = history_catalog.artworks[entry.artwork]
+	var text := "%s\n%s · %s\n\n馆藏：%s\n藏品号：%s\n图源：%s\n%s\n\n授权标记：%s\n%s\n\n原图按比例显示，未生成、裁切或重绘。完整来源记录随游戏离线保存。" % [art.title, art.artist, art.date, art.collection, art.accession, art.source_name, art.source_url, art.license, art.license_url]
+	var panel := _modal("图画来源与授权", text, "history", 23)
+	ui_buttons.close_help.visible = false
+	_button(panel, "history_back", "返回图画说明", Rect2(50, 627, 510, 85), _show_history.bind(false))
+	_button(panel, "close_history", "回到场景", Rect2(584, 627, 526, 85), _close_overlay, true)
 
 func _show_character_picker() -> void:
 	if model.stage != "attract" or overlay_kind != "" or (transition_guard > 0 and not test_mode): return
@@ -1082,18 +1127,18 @@ func _confirm_character() -> void:
 
 func _show_ledger() -> void:
 	var panel := _modal("这笔生意 · 逐项记账", "", "ledger")
-	_label(panel, "本金%d · 现钱%d · %s · 已用%d天" % [model.data.initial_cash, model.cash,
-		"待补缺口%d" % -int(model.cash) if model.cash < 0 else "待清算%d" % model.debt_due(), model.ticks], Rect2(50, 127, 1060, 55), 27, INK)
+	_label(panel, "本金%d币 · 现钱%d币 · %s · 已用%d天" % [model.data.initial_cash, model.cash,
+		"待补缺口%d币" % -int(model.cash) if model.cash < 0 else "待清算%d币" % model.debt_due(), model.ticks], Rect2(50, 127, 1060, 55), 27, INK)
 	for i in model.ledger.size():
 		var row: Dictionary = model.ledger[i]
 		var x: int = 50 + floori(float(i) / 7) * 534
 		var y: int = 204 + (i % 7) * 44
 		_label(panel, row.label, Rect2(x, y, 387, 38), 22, INK)
-		_label(panel, "%+d" % row.amount, Rect2(x + 389, y, 113, 38), 23, INK)
-	var note := "借款本金不计收入，归还本金也不重复算成本；周转费6才是成本。\n赊账费用在结算时扣除；货款已包含预付，需要抵扣或退款。"
+		_label(panel, "%+d币" % row.amount, Rect2(x + 389, y, 113, 38), 23, INK)
+	var note := "借款本金不计收入，归还本金也不重复算成本；周转费6币才是成本。\n赊账费用在结算时扣除；货款已包含预付，需要抵扣或退款。"
 	if not model.result.is_empty():
 		var r: Dictionary = model.result
-		note = "%s；货款%d − 总成本%d = 利润%d。\n尾款／退款净额：%+d；借赊清算%d；尚待填补缺口%d。" % [_fulfillment_text(), r.due, r.cost, r.profit, r.balance_due, r.debt_settlement, r.funding_gap]
+		note = "%s；货款%d币 − 总成本%d币 = 利润%d币。\n尾款／退款净额：%+d币；借赊清算%d币；尚待填补缺口%d币。" % [_fulfillment_text(), r.due, r.cost, r.profit, r.balance_due, r.debt_settlement, r.funding_gap]
 	_label(panel, note, Rect2(50, 532, 1060, 85), 24, INK)
 
 func _show_exit() -> void:

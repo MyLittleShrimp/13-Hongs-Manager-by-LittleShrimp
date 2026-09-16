@@ -144,7 +144,7 @@ func _choose_impl(index: int) -> bool:
 			supplier = data.suppliers[index].duplicate(true)
 			supplier["quote"] = quotes[index]
 			stage = "bargain"
-			last_line = "这批%s，十箱共%d。你看，怎么成交？" % [supplier.name, supplier.quote]
+			last_line = "这批%s，十箱共%d币。你看，怎么成交？" % [supplier.name, supplier.quote]
 		"bargain": return _buy(index)
 		"bargain_chat":
 			if index in market_topics: return false
@@ -193,7 +193,7 @@ func _choose_impl(index: int) -> bool:
 			if index != 0: return false
 			if not pending_delivery.quality_met:
 				stage = "acceptance"
-				last_line = "到货货色%d，原单要求%d。我能按%d收下；若另寻买家，请先取消原单。" % [pending_delivery.quality, contract.quality, pending_delivery.due]
+				last_line = "到货货色%d，原单要求%d。我能按%d币收下；若另寻买家，请先取消原单。" % [pending_delivery.quality, contract.quality, pending_delivery.due]
 			else: return _settle("standard")
 		"acceptance":
 			if index > 1: return false
@@ -220,7 +220,7 @@ func _buy(index: int) -> bool:
 			success = true
 			var saving := int(round(price * (0.08 if index == 1 else 0.18)))
 			price -= saving
-			outcome = "茶商让了%d，这次议价成了。" % saving
+			outcome = "茶商让了%d币，这次议价成了。" % saving
 		else:
 			delay = 1 if index == 1 else 2
 			ticks += delay
@@ -313,7 +313,7 @@ func _remedy(index: int) -> bool:
 	_book("exchange", "补价换货", -cost)
 	if inspected > 0:
 		quality_report = "处理后货色 %d / 100" % quality if inspected == 2 else "处理后约 %d—%d" % [maxi(0, quality - 7), mini(100, quality + 7)]
-	_event("货物处理", "换货完成，花了%d、多花2天。%s" % [cost,
+	_event("货物处理", "换货完成，花了%d币、多花2天。%s" % [cost,
 		"货色%d→%d；可以再决定是否装运。" % [before, quality] if inspected == 2 else "货色提高%d；可以再决定是否装运。" % (quality - before)])
 	return true
 
@@ -328,7 +328,7 @@ func _begin_roast(index: int) -> bool:
 	roast_step = 0
 	work_tool = -1
 	stage = "roasting_work"
-	_event("选定火候", "%s，花费%d、耗时%d天已记账。先取火钳拨匀炭火。" % [plan.name, plan.cost, plan.ticks])
+	_event("选定火候", "%s，花费%d币、耗时%d天已记账。先取火钳拨匀炭火。" % [plan.name, plan.cost, plan.ticks])
 	return true
 
 func cancel_roast_plan(expected_revision: int = -1) -> bool:
@@ -390,7 +390,7 @@ func borrow(expected_revision: int = -1) -> bool:
 	loan_principal = 60
 	loan_fee = 6
 	_book("loan", "陈叔周转借款（须归还）", loan_principal)
-	_event("一次周转", "陈叔借来现钱60；结算时还66。这笔借款不算收入。")
+	_event("一次周转", "陈叔借来现钱60币；结算时还66币。这笔借款不算收入。")
 	revision += 1
 	return true
 
@@ -399,16 +399,16 @@ func use_deferred(expected_revision: int = -1) -> bool:
 	if stage == "packing":
 		packaging = {"name":"赊用旧箱", "cost":12, "ticks":2, "protection":0.05}
 		deferred_cost += 12
-		_book("deferred_packing", "赊用旧箱（待付12）", 0)
+		_book("deferred_packing", "赊用旧箱（待付12币）", 0)
 		ticks += 2
 		packing_step = 0
 		work_tool = -1
 		stage = "packing_work"
-		_event("赊账装箱", "先赊用旧箱，结算扣12；耗2天，防潮较弱。")
+		_event("赊账装箱", "先赊用旧箱，结算扣12币；耗2天，防潮较弱。")
 	elif stage == "dock":
 		route = {"name":"候船赊运", "cost":18, "ticks":3, "exposure":1.40}
 		deferred_cost += 18
-		_book("deferred_freight", "候船赊运（待付18）", 0)
+		_book("deferred_freight", "候船赊运（待付18币）", 0)
 		ticks += 3
 		_draw_voyage()
 	else: return false
@@ -564,9 +564,9 @@ func chapter() -> int:
 
 func ending() -> Array:
 	if result.is_empty(): return ["茶船将发", "这一趟还在路上。", "先把手里的事做完。"]
-	if result.funding_gap > 0: return ["一笔未清的账", "茶船走了，账房还留着%d缺口。陈叔陪你把每项支出重新写清。" % result.funding_gap, "下次先留周转钱；赊下的费用，终究要还。"]
+	if result.funding_gap > 0: return ["一笔未清的账", "茶船走了，账房还留着%d币缺口。陈叔陪你把每项支出重新写清。" % result.funding_gap, "下次先留周转钱；赊下的费用，终究要还。"]
 	if result.mode == "resale": return ["换一个买主", "原单取消后，你为%d箱茶另寻出路。梁老板帮着牵线，阿顺等你重新点货。" % result.delivered, "止损也要算清改单费和预付款，才知道收回了多少。"]
-	if result.contract_met and result.profit >= 0: return ["陈叔把账本交给你", "十箱茶如约交清。这一单收支相抵，陈叔让你把打平的账也仔细记好。" if result.profit == 0 else "十箱茶如约交清。交接人合上货单，陈叔让你亲手记下这笔%d的盈余。" % result.profit, "从选茶到封箱，你终于独立照应完一笔生意。"]
+	if result.contract_met and result.profit >= 0: return ["陈叔把账本交给你", "十箱茶如约交清。这一单收支相抵，陈叔让你把打平的账也仔细记好。" if result.profit == 0 else "十箱茶如约交清。交接人合上货单，陈叔让你亲手记下这笔%d币的盈余。" % result.profit, "从选茶到封箱，你终于独立照应完一笔生意。"]
 	if result.lost > 0: return ["湿了的茶箱", "阿顺把%d箱损货摆在岸边。你点清余货，也把这次风雨的代价记进账里。" % result.lost, "路上的风险压不成零；包装、路线和应对，都有分量。"]
 	if result.late > 0: return ["赶上货，误了期", "茶到了，原定交期却已过去%d天。交接人按约扣款，陈叔提醒你回看一路的等待。" % result.late, "货色值得照应，船期也要从接单时一起算。"]
 	if not result.quality_met: return ["货色之外，还有商量", "交接人指出货色差距。你确认折价，让茶货仍有去处，也在账上留下未达标的记录。", "卖出去与如约交付，是两件需要分别照应的事。"]
