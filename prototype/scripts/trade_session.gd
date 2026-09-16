@@ -42,6 +42,7 @@ var market_topics: Array[int] = []
 var market_topic := -1
 var bargain_result: Dictionary = {}
 var bargain_beat := 0
+var last_treatment: Dictionary = {}
 
 const ROAST_PLANS := [
 	{"name":"常火匀焙", "cost":20, "ticks":2, "gain":12},
@@ -79,6 +80,7 @@ func reset(seed_value: int = -1) -> void:
 	market_topic = -1
 	bargain_result.clear()
 	bargain_beat = 0
+	last_treatment.clear()
 	cash = int(data.initial_cash)
 	ticks = 0
 	contract = {}
@@ -303,7 +305,9 @@ func _remedy(index: int) -> bool:
 		return true
 	var cost := 34
 	var before := quality
+	var before_bounds := quality_bounds()
 	quality = mini(100, quality + 24)
+	last_treatment = {"name":"补价换货", "before":before_bounds, "after":quality_bounds()}
 	ticks += 2
 	exchange_used = true
 	_book("exchange", "补价换货", -cost)
@@ -345,7 +349,9 @@ func select_tool(index: int, expected_revision: int = -1) -> bool:
 	return true
 
 func _finish_roast() -> void:
+	var before_bounds := quality_bounds()
 	quality = mini(100, quality + int(roast_plan.gain))
+	last_treatment = {"name":str(roast_plan.name), "before":before_bounds, "after":quality_bounds()}
 	if inspected > 0:
 		quality_report = "处理后货色 %d / 100" % quality if inspected == 2 else "处理后约 %d—%d" % [maxi(0, quality - 7), mini(100, quality + 7)]
 	stage = "remedy"

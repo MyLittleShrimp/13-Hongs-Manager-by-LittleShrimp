@@ -1,12 +1,24 @@
 # 十三行 · 茶船将发
 
-**单机茶叶篇 v0.6｜Godot 4.7.2｜横屏鼠标／触摸**
+**单机茶叶篇 v0.7｜Godot 4.7.2｜横屏鼠标／触摸**
 
 ## 游戏介绍
 
 一笔茶单，一段由你作主的生意。《十三行 · 茶船将发》是一款以广州十三行贸易为背景、面向博物馆互动体验设计的二维剧情策略经营游戏。玩家选择阿砚或阿宁，成为行号的新任采购管事，从接下外商茶单开始，体验挑货议价、验茶加工、装箱封绳与江上驳运。货色、成本、船期和随机风雨共同影响最终盈亏；货不达标可以补救，手头紧张可以周转，每次选择都有代价。亲手完成一单茶生意，在人物与场景中感受十三行贸易的协作和经营智慧。
 
 更多版本：[正式介绍与仓库简介](docs/游戏介绍.md)。
+
+## v0.7 验茶结果与工序演出
+
+- 验茶结果在场景中央大字显示货色与订单要求：抽样显示范围，逐箱复核显示准确数值。
+- 复焙、换货后保留前后对比，例如「常火匀焙：72 → 84」；未验货时仍显示未知。
+- 看叶形、辨干湿、看汤色各有独立观察动作；复焙依次表现拨炭、翻茶和收茶回凉。
+- 人物靠近操作台并给出短对白；最后一段回凉播完，再切换到结果画面。
+- 工序演出期间防止重复操作；打开帮助暂停动作，回到场景继续，结束本局取消未完成动作。
+
+![中央验茶结果与订单要求](docs/images/inspection-result.png)
+
+试玩路线、动作说明与验证见 [v0.7验茶结果与工序演出](docs/v0.7验茶结果与工序演出.md)。
 
 ## v0.6 茶市议价深化
 
@@ -90,7 +102,7 @@ python tools/run_godot.py --headless --editor --import
 | 剧情 | 新管事接过第一笔茶单；议价、验茶、风雨应对、盈亏与收尾对白随选择变化 |
 | 决策 | 订单、货源、议价、验货、货物处理、三种火候、包装、航线、江上应对、折价／转售与资金应急 |
 | 随机经营 | 每局报价、货色、劣批、议价成败、航行事件、损货与到货品质均参与计算；会亏钱 |
-| 动作 | 入场移动、待机呼吸、场景渐变、雨丝与水纹、铺衬料、落茶、封箱转场、货箱搬运 |
+| 动作 | 入场移动、待机呼吸、付款递单、三项验茶、拨炭翻茶与回凉、铺衬落茶、封箱搬运、雨丝水纹 |
 | 数字分身 | 保留纹理替换接口；生成端与现场联调按用户要求后置 |
 | 信息呈现 | 场景占主体，底部短对话和选项；详细账本与知识说明按需打开 |
 
@@ -135,6 +147,7 @@ python tools/run_godot.py --headless --script res://tests/test_ui.gd -- --self-t
 python tools/run_godot.py --headless --script res://tests/test_characters.gd -- --self-test
 python tools/run_godot.py --headless --script res://tests/test_music.gd -- --self-test
 python tools/run_godot.py --headless --script res://tests/test_market.gd -- --self-test
+python tools/run_godot.py --headless --script res://tests/test_performance.gd -- --self-test
 python tools/run_godot.py --headless --script res://tests/check_assets.gd
 python tools/run_godot.py --resolution 1920x1080 --audio-driver Dummy -- --ui-tour
 ```
@@ -146,12 +159,13 @@ python tools/run_godot.py --resolution 1920x1080 --audio-driver Dummy -- --ui-to
 GitHub上传范围与运行准备见 [Git管理说明](docs/GitHub上传准备.md)。下列 `artifacts/`、`archive/`、`tools/godot/`、`runtime-data/` 为本地文件或运行生成目录，默认不提交；仓库内展示截图位于 `docs/images/`。
 
 - `prototype/`：Godot场景、脚本、数据、美术。
+- `docs/v0.7验茶结果与工序演出.md`：中央货色结果、验茶与复焙动作及验证。
 - `docs/v0.6茶市议价深化.md`：茶市问话、交割、人物反馈与验证。
 - `docs/v0.4单机场景与剧情深化.md`：本轮单机功能、工序、火候、结尾和验证。
 - `docs/v0.2深化实现说明.md`：玩法、随机规则、数字分身接口和下一阶段。
 - `docs/实施进度.md`：当前验证记录与未完成条件。
 - `art_source/prompts/`：ImageGen原始提示词。
-- `artifacts/v0.6/`：最新茶市实际画面；旧版证据仍保留。
+- `artifacts/v0.7/`：验茶、复焙动作与中央结果的实际画面；旧版证据仍保留。
 - `archive/v0.1/`：原文字流程版代码、规则与文档备份。
 - `archive/v0.3/`：本轮改动前的代码、规则、测试与文档。
 - `tools/godot/`：已校验便携引擎。
@@ -161,6 +175,6 @@ GitHub上传范围与运行准备见 [Git管理说明](docs/GitHub上传准备.m
 
 人物、故事、概率、资金和包装操作均为游戏化设定。约1800年为暂定叙事时段，ImageGen场景尚需馆方审定。当前仅完成茶叶篇，瓷器、丝绸、连续多日经营、配音及正式部署待后续。
 
-知识依据：[香港艺术馆·外销艺术](https://hk.art.museum/sc/web/ma/collections/china-trade-art.html)。完整立项分析保留在同目录原计划文件中；实现状态以v0.6文档为准。
+知识依据：[香港艺术馆·外销艺术](https://hk.art.museum/sc/web/ma/collections/china-trade-art.html)。完整立项分析保留在同目录原计划文件中；实现状态以v0.7文档为准。
 
 启动器仅为子进程设置项目内APPDATA与LOCALAPPDATA，不修改系统全局环境。系统字体不随项目分发；引擎许可见 `LICENSES/`。

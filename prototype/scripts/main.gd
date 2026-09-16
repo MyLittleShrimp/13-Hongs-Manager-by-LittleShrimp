@@ -10,6 +10,8 @@ const SessionLog = preload("res://scripts/session_log.gd")
 const MusicPlaylist = preload("res://scripts/music_playlist.gd")
 const MarketStory = preload("res://scripts/market_story.gd")
 const MarketExchange = preload("res://scripts/market_exchange.gd")
+const QualityDisplay = preload("res://scripts/quality_display.gd")
+const WorkshopPerformance = preload("res://scripts/workshop_performance.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -65,6 +67,10 @@ var music_title_label: Label
 var last_choice := ""
 var rendered_stage := ""
 var market_exchange
+var workshop_performance
+var action_busy := false
+var pending_work: Dictionary = {}
+var work_progress: ColorRect
 
 func _ready() -> void:
 	font_body = SystemFont.new()
@@ -108,6 +114,9 @@ func _ready() -> void:
 	tool_sprite = Sprite2D.new()
 	world.add_child(tool_sprite)
 	tool_sprite.visible = false
+	workshop_performance = WorkshopPerformance.new()
+	world.add_child(workshop_performance)
+	workshop_performance.completed.connect(_finish_work_performance)
 	market_exchange = MarketExchange.new()
 	market_exchange.font = font_body
 	world.add_child(market_exchange)
@@ -139,11 +148,24 @@ func _npc_profile(id: String) -> Dictionary:
 
 func _process(delta: float) -> void:
 	transition_guard = maxf(0, transition_guard - delta)
+	if is_instance_valid(workshop_performance):
+		workshop_performance.paused = overlay_kind != ""
+		player_actor.performance_paused = action_busy and overlay_kind != ""
+		npc_actor.performance_paused = player_actor.performance_paused
+		if action_busy:
+			for actor in [player_actor, npc_actor]:
+				if actor.walking and actor.motion and actor.motion.is_valid():
+					if workshop_performance.paused: actor.motion.pause()
+					else: actor.motion.play()
+			if pending_work.get("stage", "") == "roasting_work":
+				tool_sprite.position = workshop_performance.tool_position()
+				tool_sprite.rotation = workshop_performance.tool_rotation()
+			if is_instance_valid(work_progress): work_progress.size.x = 580 * workshop_performance.progress()
 	if is_instance_valid(cargo_group) and cargo_group.visible:
 		cargo_group.position.y = cargo_base_y + sin(float(Time.get_ticks_msec()) / 550.0) * (4 if model.stage == "voyage" else 0)
 	if is_instance_valid(dialogue_label) and overlay_kind == "":
 		dialogue_clock += delta
-		dialogue_label.visible_characters = int(dialogue_clock * 38) if not test_mode else -1
+		dialogue_label.visible_characters = -1 if test_mode or action_busy else int(dialogue_clock * 38)
 	if model == null or model.stage == "attract" or test_mode: return
 	session_seconds += delta
 	if not bool(settings.get("kiosk_mode", false)): return
@@ -283,6 +305,7 @@ func _render() -> void:
 	add_child(page)
 	ui_buttons.clear()
 	dialogue_label = null
+	work_progress = null
 	idle_hint = null
 	dialogue_clock = 0
 	_update_world()
@@ -312,6 +335,7 @@ func _update_world() -> void:
 		fade.tween_property(scene_fade, "modulate:a", 0.0, 0.7)
 		transition_guard = 0.75
 	var npc_id := "buyer" if model.stage in ["acceptance", "arrival"] else ("boatman" if place in ["dock", "vessel"] else ("steward" if place in ["market", "inspection"] else "master"))
+	if model.stage == "remedy" and not model.events.is_empty() and model.events[-1].label == "复焙收茶": npc_id = "master"
 	if npc_actor.profile.get("body_texture", "") != "res://assets/characters/%s.png" % npc_id:
 		npc_actor.set_profile(_npc_profile(npc_id))
 	if model.stage == "attract":
@@ -425,10 +449,11 @@ func _render_attract() -> void:
 	_button(page, "start", "接过账本，开张", Rect2(153, 776, 640, 100), _start, true)
 	_label(page, "你的化身 · " + str(avatar_profile.display_name), Rect2(1120, 904, 620, 60), 34, PAPER, true)
 	_button(page, "avatar", "阿砚 / 阿宁 · 切换角色", Rect2(1150, 978, 500, 73), _show_character_picker)
-	_label(page, "v0.6 单机茶叶篇  /  鼠标或触摸  /  剧情人物与数值为游戏设定", Rect2(105, 980, 980, 40), 23, PAPER)
+	_label(page, "v0.7 单机茶叶篇  /  鼠标或触摸  /  剧情人物与数值为游戏设定", Rect2(105, 980, 980, 40), 23, PAPER)
 
 func _story() -> Array:
 	var name := str(avatar_profile.display_name)
+	if action_busy: return ["梁老板" if model.stage == "inspection_work" else "陈叔", workshop_performance.dialogue()]
 	match model.stage:
 		"intro": return ["陈叔 · 行号老管事", name + "，黄埔的商船就要启航了。外商托行号采办十箱茶，这回让你独当一面。"]
 		"contract": return ["陈叔", model.last_line + " 三种茶单，交期和货色要求各不相同。"]
@@ -444,6 +469,8 @@ func _story() -> Array:
 		"roasting_work": return ["陈叔", model.last_line]
 		"remedy":
 			var just_inspected: bool = not model.events.is_empty() and model.events[-1].label in ["未验货", "抽样结果", "复核结果"]
+			if not model.events.is_empty() and model.events[-1].label == "复焙收茶":
+				return ["陈叔", QualityDisplay.roast_response(model)]
 			return [name, MarketStory.inspection_response(model) if just_inspected else model.last_line]
 		"shipment_review": return ["陈叔", "这批货仍有不达标风险。可以回去处理；也可以装运，到货后再决定是否接受折价。"]
 		"packing": return ["陈叔", ("外头云低，箱里的防潮不能轻看。" if model.weather > 0 else "天晴也得防舱底潮气。") + " 选好包装，我们一起封箱。"]
@@ -521,7 +548,7 @@ func _render_story() -> void:
 	_panel(page, Rect2(40, 800, 1840, 112), DARK, Color("a58e64"))
 	_label(page, str(words[0]), Rect2(64, 811, 305, 80), 27, GOLD, true)
 	dialogue_label = _label(page, str(words[1]), Rect2(382, 810, 1355, 86), 30)
-	dialogue_label.visible_characters = -1 if test_mode else 0
+	dialogue_label.visible_characters = -1 if test_mode or action_busy else 0
 	_button(page, "reveal", "全文", Rect2(1750, 822, 100, 65), func(): dialogue_clock = 1000)
 	var options := _choices()
 	var count := options.size()
@@ -561,9 +588,7 @@ func _render_story() -> void:
 		_label(page, "损货%d箱 · 余下%d箱" % [d.lost, d.delivered] if d.damaged else "十箱茶 · 平安靠岸", Rect2(670, 278, 605, 65), 38, GOLD, true)
 		_label(page, "到货货色%d · 要求%d\n%s" % [d.quality, model.contract.quality, "原单货色未达标，靠岸后需要议价。" if not d.quality_met else "货色达到门槛，还要核对数量与交期。"], Rect2(670, 348, 605, 75), 25)
 	elif model.stage in ["remedy", "shipment_review"]:
-		_panel(page, Rect2(670, 328, 590, 221), DARK, GOLD)
-		_label(page, model.quality_guidance(), Rect2(699, 345, 535, 111), 29, GOLD)
-		_label(page, "复焙 %d/2次 · 换货 %d/1次\n每次处理都耗钱与工期" % [model.rework_count, int(model.exchange_used)], Rect2(699, 467, 535, 68), 23)
+		_render_quality_result()
 	elif model.stage == "acceptance":
 		_panel(page, Rect2(670, 328, 590, 205), DARK, GOLD)
 		_label(page, "原单货色未达标", Rect2(699, 342, 535, 60), 39, GOLD, true)
@@ -572,7 +597,19 @@ func _render_story() -> void:
 		_button(page, "look", "◎  留意场景", Rect2(790, 666, 350, 77), _show_history)
 	_label(page, "选择才消耗工期，思考不计时。", Rect2(61, 752, 575, 31), 21, PAPER)
 	if model.can_borrow() or model.stage in ["packing", "dock"]:
-		_button(page, "support", "资金不足？找陈叔" if model.cash < 20 else "陈叔 · 周转与赊账", Rect2(42, 649, 397, 87), _show_support, model.cash < 20)
+		_button(page, "support", "资金不足？找陈叔" if model.cash < 20 else "陈叔 · 周转与赊账", Rect2(42, 649, 397, 87), _show_support, model.cash < 20, action_busy)
+
+func _render_quality_result() -> void:
+	var panel := _panel(page, Rect2(636, 279, 674, 342), DARK, GOLD)
+	panel.name = "QualityResult"
+	_label(panel, "装运前核对" if model.stage == "shipment_review" else ("验茶结果" if model.last_treatment.is_empty() else "处理结果"), Rect2(30, 13, 614, 39), 26, PAPER, true)
+	var value := _label(panel, QualityDisplay.headline(model), Rect2(30, 59, 614, 66), 42, GOLD)
+	value.name = "QualityValue"
+	_label(panel, "订单要求 ≥ %d" % model.contract.quality, Rect2(30, 132, 614, 39), 28, PAPER).name = "QualityRequirement"
+	_label(panel, model.quality_guidance(), Rect2(30, 184, 614, 67), 25, PAPER)
+	var comparison: String = QualityDisplay.comparison(model)
+	_label(panel, comparison if comparison != "" else "抽样给出范围；逐箱复核才能确认准确货色。", Rect2(30, 263, 614, 35), 23, GOLD if comparison != "" else MUTED).name = "QualityComparison"
+	_label(panel, "复焙 %d/2次 · 换货 %d/1次 · 处理要花钱与工期" % [model.rework_count, int(model.exchange_used)], Rect2(30, 304, 614, 29), 21, MUTED)
 
 func _render_inspection() -> void:
 	var done: int = model.inspection_marks.size()
@@ -582,10 +619,13 @@ func _render_inspection() -> void:
 	var progress := ""
 	for i in 3: progress += ("● " if i in model.inspection_marks else "○ ") + ["叶形", "干湿", "汤色"][i] + "    "
 	_label(page, progress, Rect2(678, 306, 583, 39), 25)
+	if action_busy:
+		_rect(page, Rect2(676, 365, 580, 5), Color("50604b"))
+		work_progress = _rect(page, Rect2(676, 365, 1, 5), GOLD)
 	for i in 3:
 		var seen: bool = i in model.inspection_marks
-		_button(page, "observe_%d" % i, ("✓ " if seen else "◎ ") + ["看叶形", "辨干湿", "看汤色"][i], Rect2(601 + i * 290, 664, 225, 83), _choose.bind(i, "inspection_work", model.revision), not seen, seen)
-	_button(page, "inspection_done", "记下验茶结果" if done >= required else "已查看%d/%d项 · 继续看茶样" % [done, required], Rect2(650, 940, 620, 105), _station_action.bind("finish_inspection", model.revision), true, done < required)
+		_button(page, "observe_%d" % i, ("✓ " if seen else "◎ ") + ["看叶形", "辨干湿", "看汤色"][i], Rect2(601 + i * 290, 664, 225, 83), _choose.bind(i, "inspection_work", model.revision), not seen, seen or action_busy)
+	_button(page, "inspection_done", workshop_performance.caption() + " · 正在观察" if action_busy else ("记下验茶结果" if done >= required else "已查看%d/%d项 · 继续看茶样" % [done, required]), Rect2(650, 940, 620, 105), _station_action.bind("finish_inspection", model.revision), true, done < required or action_busy)
 
 func _render_workbench() -> void:
 	var roast: bool = model.stage == "roasting_work"
@@ -595,11 +635,14 @@ func _render_workbench() -> void:
 	var selected_tool: bool = model.work_tool == step
 	_panel(page, Rect2(655, 242, 637, 98), DARK, GOLD)
 	_label(page, "%s · %d / 3" % [model.roast_plan.name if roast else model.packaging.name, step + 1], Rect2(685, 251, 582, 43), 32, GOLD, true)
-	_label(page, "已取%s → 点场景中的操作点" % tools_list[step] if selected_tool else "先取下方%s，再点场景操作" % tools_list[step], Rect2(685, 295, 582, 34), 23)
-	_button(page, "work_action" if roast else "pack_action", verbs[step] if selected_tool else "先取" + tools_list[step], Rect2(742, 689, 429, 83), _choose.bind(0, model.stage, model.revision), true, not selected_tool)
+	_label(page, "正在%s，稍候看结果" % workshop_performance.caption() if action_busy else ("已取%s → 点场景中的操作点" % tools_list[step] if selected_tool else "先取下方%s，再点场景操作" % tools_list[step]), Rect2(685, 295, 582, 34), 23)
+	_button(page, "work_action" if roast else "pack_action", "正在" + workshop_performance.caption() if action_busy else (verbs[step] if selected_tool else "先取" + tools_list[step]), Rect2(742, 689, 429, 83), _choose.bind(0, model.stage, model.revision), true, not selected_tool or action_busy)
+	if action_busy:
+		_rect(page, Rect2(681, 351, 580, 5), Color("50604b"))
+		work_progress = _rect(page, Rect2(681, 351, 1, 5), GOLD)
 	for i in 3:
 		var state := "已完成" if i < step else ("已取用" if i == step and selected_tool else ("轻触取用" if i == step else "稍后使用"))
-		var b: Button = _button(page, "tool_%d" % i, "%s\n%s" % [tools_list[i], state], Rect2(350 + i * 412, 934, 390, 111), _take_tool.bind(i, model.revision), i == step, i != step or selected_tool)
+		var b: Button = _button(page, "tool_%d" % i, "%s\n%s" % [tools_list[i], state], Rect2(350 + i * 412, 934, 390, 111), _take_tool.bind(i, model.revision), i == step, i != step or selected_tool or action_busy)
 		b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		var icon := TextureRect.new()
 		icon.texture = _tool_texture(i, roast)
@@ -620,7 +663,7 @@ func _tool_texture(index: int, roast: bool) -> AtlasTexture:
 	return atlas
 
 func _take_tool(index: int, ticket: int) -> void:
-	if overlay_kind != "" or (transition_guard > 0 and not test_mode): return
+	if action_busy or overlay_kind != "" or (transition_guard > 0 and not test_mode): return
 	if not model.select_tool(index, ticket): return
 	_play_click()
 	idle_seconds = 0
@@ -639,7 +682,7 @@ func _take_tool(index: int, ticket: int) -> void:
 	transition_guard = 0.45
 
 func _station_action(action: String, ticket: int) -> void:
-	if overlay_kind != "" or (transition_guard > 0 and not test_mode): return
+	if action_busy or overlay_kind != "" or (transition_guard > 0 and not test_mode): return
 	var changed: bool = model.finish_inspection(ticket) if action == "finish_inspection" else model.cancel_roast_plan(ticket)
 	if not changed: return
 	_play_click()
@@ -728,12 +771,41 @@ func _start() -> void:
 	if model.start():
 		idle_seconds = 0
 		session_seconds = 0
-		logger.record("start", model.session_id, {"version":"0.6", "character":avatar_profile.get("id", "custom")})
+		logger.record("start", model.session_id, {"version":"0.7", "character":avatar_profile.get("id", "custom")})
 		_render()
 		transition_guard = 0.4
 
 func _choose(index: int, expected: String, expected_revision: int = -1) -> void:
-	if overlay_kind != "" or model.stage != expected or (transition_guard > 0 and not test_mode): return
+	if action_busy or overlay_kind != "" or model.stage != expected or (transition_guard > 0 and not test_mode): return
+	if not test_mode and expected in ["inspection_work", "roasting_work"]:
+		if expected_revision >= 0 and model.revision != expected_revision: return
+		if not model.available(index): return
+		_begin_work_performance(index, expected)
+		return
+	_apply_choice(index, expected, expected_revision)
+
+func _begin_work_performance(index: int, stage: String) -> void:
+	pending_work = {"index":index, "stage":stage, "revision":model.revision}
+	action_busy = true
+	if tool_motion: tool_motion.kill()
+	workshop_performance.begin(stage, index if stage == "inspection_work" else int(model.roast_step))
+	_render()
+	player_actor.walk_to(Vector2(485, 790), 0.32)
+	npc_actor.walk_to(Vector2(1450, 790), 0.32)
+	player_actor.react("inspect" if stage == "inspection_work" else "work", workshop_performance.duration)
+	npc_actor.react("agree", workshop_performance.duration)
+	idle_seconds = 0
+	_play_click()
+
+func _finish_work_performance() -> void:
+	if not action_busy or pending_work.is_empty(): return
+	var pending := pending_work.duplicate()
+	pending_work.clear()
+	action_busy = false
+	tool_sprite.visible = false
+	_apply_choice(int(pending.index), str(pending.stage), int(pending.revision), true)
+
+func _apply_choice(index: int, expected: String, expected_revision: int, performed: bool = false) -> void:
 	var old_cash: int = model.cash
 	if model.choose(index, expected, expected_revision):
 		_play_click()
@@ -751,14 +823,14 @@ func _choose(index: int, expected: String, expected_revision: int = -1) -> void:
 		elif expected == "bargain_chat":
 			npc_actor.react("agree")
 		if expected == "inspection_work": workshop_effect.play_at(Vector2(680 + index * 310, 545))
-		if expected in ["packing_work", "roasting_work"] and model.stage == expected:
+		if not performed and expected in ["packing_work", "roasting_work"] and model.stage == expected:
 			if tool_motion: tool_motion.kill()
 			tool_motion = create_tween()
 			tool_motion.tween_property(tool_sprite, "position", Vector2(939, 550), 0.26).set_trans(Tween.TRANS_SINE)
 			tool_motion.parallel().tween_property(tool_sprite, "rotation", 0.25, 0.26)
 			tool_motion.tween_property(tool_sprite, "modulate:a", 0.0, 0.3)
 			tool_motion.tween_callback(func(): tool_sprite.visible = false)
-		transition_guard = maxf(transition_guard, 0.8 if expected in ["packing_work", "roasting_work"] else 0.4)
+		transition_guard = maxf(transition_guard, 0.2 if performed else (0.8 if expected in ["packing_work", "roasting_work"] else 0.4))
 
 func _play_click() -> void:
 	if not ambient_enabled: return
@@ -775,6 +847,11 @@ func _play_click() -> void:
 	sound_player.play()
 
 func _end_session(reason: String) -> void:
+	workshop_performance.cancel()
+	pending_work.clear()
+	action_busy = false
+	player_actor.performance_paused = false
+	npc_actor.performance_paused = false
 	logger.record("end", model.session_id, {"reason":reason, "duration_seconds":roundi(session_seconds), "result":model.result})
 	_close_overlay()
 	model.reset()
@@ -798,6 +875,7 @@ func _modal(title: String, body: String, kind: String, body_font_size: int = 28)
 	_label(panel, title, Rect2(48, 25, 1065, 85), 43, INK, true)
 	_label(panel, body, Rect2(49, 130, 1062, 458), body_font_size, INK)
 	overlay_kind = kind
+	workshop_performance.paused = true
 	_button(panel, "close_help", "回到场景", Rect2(50, 627, 1060, 85), _close_overlay, true)
 	return panel
 
@@ -866,6 +944,7 @@ func _show_journey() -> void:
 	_modal("这一趟 · 已发生的事", text.strip_edges(), "journey", 23)
 
 func _show_support() -> void:
+	if action_busy: return
 	if not model.can_borrow() and model.stage not in ["packing", "dock"]: return
 	var ticket: int = model.revision
 	var panel := _modal("陈叔 · 生意遇坎，先想办法", "", "support")
@@ -881,7 +960,7 @@ func _show_support() -> void:
 		_button(panel, "defer", "赊箱 · 结算付12点" if model.stage == "packing" else "赊运 · 结算付18点", Rect2(584, 494, 526, 93), _support_action.bind("defer", ticket))
 
 func _support_action(kind: String, ticket: int) -> void:
-	if overlay_kind != "support": return
+	if action_busy or overlay_kind != "support": return
 	var success: bool = model.borrow(ticket) if kind == "borrow" else model.use_deferred(ticket)
 	if not success: return
 	logger.record("support", model.session_id, {"kind":kind, "cash":model.cash, "debt_due":model.debt_due()})
