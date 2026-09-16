@@ -1,5 +1,6 @@
 extends SceneTree
 const Display = preload("res://scripts/quality_display.gd")
+const Gestures = preload("res://tests/gesture_test_driver.gd")
 var app
 var checks := 0
 var capture_enabled := false
@@ -20,6 +21,7 @@ func tap(id: String) -> void:
 	await app._tour_tap(id)
 
 func wait_for_performance() -> void:
+	if app.gesture_workshop.active: await Gestures.perform(app)
 	var deadline := Time.get_ticks_msec() + 5000
 	while app.action_busy and Time.get_ticks_msec() < deadline: await process_frame
 	verify(not app.action_busy, "Performance finishes in bounded time")

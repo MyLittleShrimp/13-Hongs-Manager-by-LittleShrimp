@@ -3,6 +3,7 @@ extends Node2D
 var step := 0
 var sealed := false
 var performing := false
+var manual_rope := false
 var progress := 0.0
 var protection := 0.0
 var age := 0.0
@@ -57,5 +58,6 @@ func _draw() -> void:
 				var ripple := sin(j * 0.9 + i * 1.7) * 0.002
 				grain.append(lid[0].lerp(lid[1], row + ripple).lerp(lid[3].lerp(lid[2], row + ripple), j / 16.0))
 			draw_polyline(grain, Color(0.31,0.20,0.09,0.12 + (i % 3) * 0.06), 1, true)
-		_rope([Vector2(-160,-29),Vector2(157,27),Vector2(154,146)], smoothstep(0.5,0.85,p))
-		_rope([Vector2(14,-61),Vector2(-62,43),Vector2(-65,134)], smoothstep(0.65,1.0,p))
+		if not manual_rope:
+			_rope([Vector2(-160,-29),Vector2(157,27),Vector2(154,146)], smoothstep(0.5,0.85,p))
+			_rope([Vector2(14,-61),Vector2(-62,43),Vector2(-65,134)], smoothstep(0.65,1.0,p))

@@ -17,6 +17,7 @@ const MoneyIcon = preload("res://scripts/money_icon.gd")
 const WeatherScene = preload("res://scripts/weather_scene.gd")
 const CommissionStory = preload("res://scripts/commission_story.gd")
 const LoadingEffect = preload("res://scripts/loading_effect.gd")
+const GestureWorkshop = preload("res://scripts/gesture_workshop.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -47,6 +48,9 @@ var npc_actor
 var crate: TextureRect
 var packing_effect
 var loading_effect
+var gesture_workshop
+var gesture_hint: Label
+var application_focused := true
 var workshop_effect
 var cargo_group: Node2D
 var cargo_sprites: Array[TextureRect] = []
@@ -142,6 +146,10 @@ func _ready() -> void:
 	workshop_performance = WorkshopPerformance.new()
 	world.add_child(workshop_performance)
 	workshop_performance.completed.connect(_finish_work_performance)
+	gesture_workshop = GestureWorkshop.new()
+	gesture_workshop.font = font_body
+	world.add_child(gesture_workshop)
+	gesture_workshop.completed.connect(_finish_gesture)
 	market_exchange = MarketExchange.new()
 	market_exchange.font = font_body
 	world.add_child(market_exchange)
@@ -174,25 +182,27 @@ func _npc_profile(id: String) -> Dictionary:
 func _process(delta: float) -> void:
 	transition_guard = maxf(0, transition_guard - delta)
 	if is_instance_valid(workshop_performance):
-		workshop_performance.paused = overlay_kind != ""
-		player_actor.performance_paused = action_busy and overlay_kind != ""
+		workshop_performance.paused = overlay_kind != "" or not application_focused
+		gesture_workshop.paused = workshop_performance.paused
+		player_actor.performance_paused = action_busy and workshop_performance.paused
 		npc_actor.performance_paused = player_actor.performance_paused
 		if action_busy:
 			for actor in [player_actor, npc_actor]:
 				if actor.walking and actor.motion and actor.motion.is_valid():
 					if workshop_performance.paused: actor.motion.pause()
 					else: actor.motion.play()
-			if pending_work.get("stage", "") == "roasting_work":
+			if pending_work.get("stage", "") == "roasting_work" and not gesture_workshop.active:
 				tool_sprite.position = workshop_performance.tool_position()
 				tool_sprite.rotation = workshop_performance.tool_rotation()
 			if pending_work.get("stage", "") == "packing_work":
-				packing_effect.progress = workshop_performance.progress()
+				packing_effect.progress = 0.5 + gesture_workshop.progress()*0.5 if gesture_workshop.active else workshop_performance.progress()
 				tool_sprite.visible = model.packing_step == 1
 				tool_sprite.position = Vector2(1070, 433)
 				tool_sprite.rotation = -0.15 - sin(workshop_performance.progress() * PI) * 0.55
-			if pending_work.get("stage", "") == "loading_work":
+			if pending_work.get("stage", "") == "loading_work" and not gesture_workshop.active:
 				loading_effect.progress = workshop_performance.progress()
-			if is_instance_valid(work_progress): work_progress.size.x = 580 * workshop_performance.progress()
+			if is_instance_valid(work_progress): work_progress.size.x = 580 * (gesture_workshop.progress() if gesture_workshop.active else workshop_performance.progress())
+			if is_instance_valid(gesture_hint): gesture_hint.text = gesture_workshop.hint()
 	if is_instance_valid(cargo_group) and cargo_group.visible:
 		cargo_group.position.y = cargo_base_y + sin(float(Time.get_ticks_msec()) / 550.0) * (4 if model.stage == "voyage" else 0)
 	if is_instance_valid(dialogue_label) and overlay_kind == "":
@@ -234,6 +244,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		if event.index != primary_touch:
 			get_viewport().set_input_as_handled()
+			return
 	elif event is InputEventMouseButton and event.pressed:
 		if primary_touch != -1:
 			get_viewport().set_input_as_handled()
@@ -246,12 +257,21 @@ func _input(event: InputEvent) -> void:
 		elif event.keycode == KEY_ESCAPE:
 			if overlay_kind != "": _close_overlay()
 			elif model.stage != "attract": _show_exit()
+	if overlay_kind == "" and application_focused and transition_guard <= 0 and is_instance_valid(gesture_workshop):
+		if gesture_workshop.handle_event(event):
+			idle_seconds = 0
+			get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		application_focused = false
+		if is_instance_valid(gesture_workshop): gesture_workshop.suspend()
 		primary_touch = -1
 		for button in ui_buttons.values():
 			if is_instance_valid(button): button.cancel_touch()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		application_focused = true
+		if is_instance_valid(gesture_workshop): gesture_workshop.paused = overlay_kind != ""
 
 func _style(color: Color, border: Color = Color.TRANSPARENT, radius: int = 10) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
@@ -351,8 +371,11 @@ func _render() -> void:
 	ui_buttons.clear()
 	dialogue_label = null
 	work_progress = null
+	gesture_hint = null
 	idle_hint = null
 	dialogue_clock = 0
+	if model.stage == "loading_work" and not test_mode and not action_busy:
+		_prepare_gesture(0, "loading_work", "loading")
 	_update_world()
 	if model.stage == "attract":
 		_render_attract()
@@ -438,10 +461,12 @@ func _update_world() -> void:
 	packing_effect.step = model.packing_step
 	packing_effect.age = 0
 	packing_effect.performing = action_busy and model.stage == "packing_work"
+	packing_effect.manual_rope = gesture_workshop.active and gesture_workshop.kind == "rope"
 	packing_effect.progress = workshop_performance.progress() if packing_effect.performing else 0.0
 	packing_effect.protection = float(model.packaging.get("protection", 0))
 	packing_effect.modulate = WeatherScene.actor_tint(sky)
 	loading_effect.visible = model.stage == "loading_work" or (model.stage == "dock" and model.loaded_count() == 10)
+	if gesture_workshop.active and gesture_workshop.kind == "loading": loading_effect.visible = false
 	loading_effect.loaded = model.loaded_count()
 	loading_effect.batch = model.LOAD_COUNTS[mini(model.loading_step, 2)]
 	loading_effect.performing = action_busy and model.stage == "loading_work"
@@ -477,7 +502,8 @@ func _update_world() -> void:
 		crate.size = Vector2(260, 175)
 		crate.modulate = Color("a7957c") if model.pending_delivery.get("damaged", false) else Color.WHITE
 	crate.modulate *= WeatherScene.actor_tint(sky)
-	if loading_effect.visible: crate.visible = false
+	if loading_effect.visible or (gesture_workshop.active and gesture_workshop.kind == "loading"): crate.visible = false
+	if gesture_workshop.active: tool_sprite.visible = false
 
 func _header() -> void:
 	_panel(page, Rect2(26, 22, 1868, 84), DARK)
@@ -541,6 +567,8 @@ func _render_attract() -> void:
 
 func _story() -> Array:
 	var name := str(avatar_profile.display_name)
+	if action_busy and gesture_workshop.active:
+		return ["阿顺" if gesture_workshop.kind == "loading" else ("梁老板" if gesture_workshop.kind == "cup" else "陈叔"), {"loading":"把这一组箱子拖到船上同样的轮廓里。放稳再松手，没对上就再试一次。", "cup":"捧住茶杯，轻轻左右晃动，看看汤色与清浊。不用急，别只在原处点一下。", "stir":"按住竹铲，沿茶盘慢慢绕一圈，把茶翻匀。手速快慢不影响货色。", "rope":"从亮点起，沿着绳路滑过去。先收紧一道，再来一道；中途松手，也能接着画。"}[gesture_workshop.kind]]
 	if action_busy: return ["梁老板" if model.stage == "inspection_work" else ("阿顺" if model.stage == "loading_work" else "陈叔"), workshop_performance.dialogue()]
 	match model.stage:
 		"intro": return ["陈叔 · 行号老管事", name + "，怀特捎来三份茶单：一位老客，一条等货的船，还有一位带着茶样的客人。你来挑一单照应。"]
@@ -717,10 +745,13 @@ func _render_inspection() -> void:
 	if action_busy:
 		_rect(page, Rect2(676, 365, 580, 5), Color("50604b"))
 		work_progress = _rect(page, Rect2(676, 365, 1, 5), GOLD)
+		if gesture_workshop.active:
+			_panel(page, Rect2(652, 380, 638, 56), DARK, GOLD)
+			gesture_hint = _label(page, gesture_workshop.hint(), Rect2(673, 386, 600, 43), 25, GOLD)
 	for i in 3:
 		var seen: bool = i in model.inspection_marks
 		_button(page, "observe_%d" % i, ("✓ " if seen else "◎ ") + ["看叶形", "辨干湿", "看汤色"][i], Rect2(601 + i * 290, 664, 225, 83), _choose.bind(i, "inspection_work", model.revision), not seen, seen or action_busy)
-	_button(page, "inspection_done", workshop_performance.caption() + " · 正在观察" if action_busy else ("记下验茶结果" if done >= required else "已查看%d/%d项 · 继续看茶样" % [done, required]), Rect2(650, 940, 620, 105), _station_action.bind("finish_inspection", model.revision), true, done < required or action_busy)
+	_button(page, "inspection_done", ("在场景中轻晃茶杯" if gesture_workshop.active else workshop_performance.caption() + " · 正在观察") if action_busy else ("记下验茶结果" if done >= required else "已查看%d/%d项 · 继续看茶样" % [done, required]), Rect2(650, 940, 620, 105), _station_action.bind("finish_inspection", model.revision), true, done < required or action_busy)
 
 func _render_workbench() -> void:
 	var roast: bool = model.stage == "roasting_work"
@@ -730,8 +761,10 @@ func _render_workbench() -> void:
 	var selected_tool: bool = model.work_tool == step
 	_panel(page, Rect2(655, 242, 637, 98), DARK, GOLD)
 	_label(page, "%s · %d / 3" % [model.roast_plan.name if roast else model.packaging.name, step + 1], Rect2(685, 251, 582, 43), 32, GOLD, true)
-	_label(page, "正在%s，稍候看结果" % workshop_performance.caption() if action_busy else ("已取%s → 点场景中的操作点" % tools_list[step] if selected_tool else "先取下方%s，再点场景操作" % tools_list[step]), Rect2(685, 295, 582, 34), 23)
-	_button(page, "work_action" if roast else "pack_action", "正在" + workshop_performance.caption() if action_busy else (verbs[step] if selected_tool else "先取" + tools_list[step]), Rect2(742, 689, 429, 83), _choose.bind(0, model.stage, model.revision), true, not selected_tool or action_busy)
+	var instruction := _label(page, gesture_workshop.hint() if gesture_workshop.active else ("正在%s，稍候看结果" % workshop_performance.caption() if action_busy else ("已取%s → 点场景中的操作点" % tools_list[step] if selected_tool else "先取下方%s，再点场景操作" % tools_list[step])), Rect2(685, 295, 582, 34), 23)
+	if gesture_workshop.active: gesture_hint = instruction
+	var action_button = _button(page, "work_action" if roast else "pack_action", ("在场景中翻茶" if roast else "沿绳路描画") if gesture_workshop.active else ("正在" + workshop_performance.caption() if action_busy else (verbs[step] if selected_tool else "先取" + tools_list[step])), Rect2(742, 689, 429, 83), _choose.bind(0, model.stage, model.revision), true, not selected_tool or action_busy)
+	if gesture_workshop.active and not roast: action_button.visible = false
 	if action_busy:
 		_rect(page, Rect2(681, 351, 580, 5), Color("50604b"))
 		work_progress = _rect(page, Rect2(681, 351, 1, 5), GOLD)
@@ -764,11 +797,15 @@ func _render_loading() -> void:
 	var count: int = model.loaded_count()
 	_panel(page, Rect2(655, 243, 637, 137), DARK, GOLD)
 	_label(page, "码头点货 · 已装船 %d / 10 箱" % count, Rect2(684, 253, 582, 55), 33, GOLD, true).name = "LoadingCount"
-	_label(page, "阿顺接应中 · 这一批搬完再记数" if action_busy else "分批点清，逐箱搬妥；岸上还有%d箱。" % (10-count), Rect2(684, 310, 582, 43), 24)
+	var instruction := _label(page, gesture_workshop.hint() if gesture_workshop.active else ("阿顺接应中 · 这一批搬完再记数" if action_busy else "分批点清，逐箱搬妥；岸上还有%d箱。" % (10-count)), Rect2(684, 310, 582, 43), 24)
+	if gesture_workshop.active: gesture_hint = instruction
 	if action_busy:
 		_rect(page, Rect2(681, 367, 580, 5), Color("50604b"))
 		work_progress = _rect(page, Rect2(681, 367, 1, 5), GOLD)
-	_button(page, "loading_action", "正在点货装船" if action_busy else "点清这%d箱，交给阿顺\n装船清点不另扣钱与天数" % model.LOAD_COUNTS[model.loading_step], Rect2(650, 934, 620, 111), _choose.bind(0, "loading_work", model.revision), true, action_busy)
+	var action_button = _button(page, "loading_action", "拖动岸上箱组，放入船上轮廓\n装船清点不另扣钱与天数" if gesture_workshop.active else ("正在点货装船" if action_busy else "点清这%d箱，交给阿顺\n装船清点不另扣钱与天数" % model.LOAD_COUNTS[model.loading_step]), Rect2(650, 934, 620, 111), _choose.bind(0, "loading_work", model.revision), true, action_busy)
+	if gesture_workshop.active:
+		action_button.add_theme_color_override("font_disabled_color", PAPER)
+		action_button.add_theme_stylebox_override("disabled", _style(DARK))
 
 func _show_commission() -> void:
 	if model.contract.is_empty(): return
@@ -905,9 +942,34 @@ func _choose(index: int, expected: String, expected_revision: int = -1) -> void:
 	if not test_mode and expected in ["inspection_work", "roasting_work", "packing_work", "loading_work"]:
 		if expected_revision >= 0 and model.revision != expected_revision: return
 		if not model.available(index): return
+		var kind := _gesture_kind(expected, index)
+		if kind != "":
+			_prepare_gesture(index, expected, kind)
+			_render()
+			return
 		_begin_work_performance(index, expected)
 		return
 	_apply_choice(index, expected, expected_revision)
+
+func _gesture_kind(stage: String, index: int) -> String:
+	if stage == "loading_work": return "loading"
+	if stage == "inspection_work" and index == 2: return "cup"
+	if stage == "roasting_work" and model.roast_step == 1: return "stir"
+	if stage == "packing_work" and model.packing_step == 2: return "rope"
+	return ""
+
+func _prepare_gesture(index: int, stage: String, kind: String) -> void:
+	pending_work = {"index":index, "stage":stage, "revision":model.revision}
+	action_busy = true
+	workshop_performance.cancel()
+	if tool_motion: tool_motion.kill()
+	var step: int = model.loading_step if kind == "loading" else 0
+	gesture_workshop.begin(kind,step,model.run_seed,model.loaded_count())
+	idle_seconds = 0
+
+func _finish_gesture() -> void:
+	gesture_workshop.cancel()
+	_finish_work_performance()
 
 func _begin_work_performance(index: int, stage: String) -> void:
 	pending_work = {"index":index, "stage":stage, "revision":model.revision}
@@ -974,6 +1036,7 @@ func _play_click() -> void:
 
 func _end_session(reason: String) -> void:
 	workshop_performance.cancel()
+	gesture_workshop.cancel()
 	pending_work.clear()
 	action_busy = false
 	player_actor.performance_paused = false
@@ -1002,6 +1065,7 @@ func _modal(title: String, body: String, kind: String, body_font_size: int = 28)
 	_label(panel, body, Rect2(49, 130, 1062, 458), body_font_size, INK)
 	overlay_kind = kind
 	workshop_performance.paused = true
+	gesture_workshop.suspend()
 	_button(panel, "close_help", "回到场景", Rect2(50, 627, 1060, 85), _close_overlay, true)
 	return panel
 
@@ -1011,11 +1075,13 @@ func _close_overlay() -> void:
 		overlay.queue_free()
 	overlay = null
 	overlay_kind = ""
+	if is_instance_valid(gesture_workshop): gesture_workshop.paused = not application_focused
+	if is_instance_valid(workshop_performance): workshop_performance.paused = not application_focused
 	primary_touch = -1
 	idle_seconds = 0
 
 func _show_help() -> void:
-	_modal("陈叔的生意经", "“币”为游戏记账单位，金额与天数为压缩后的游戏设定。\n货色为0—100分；货色、数量、交期都满足，原单才算达标。\n\n阅读与思考不耗天数，确认经营行动才推进时间。\n验茶：抽样查看两项，复核查看三项，再确认验茶结果。\n复焙：先选火候，再取工具操作，最多两次。\n装箱：依次取衬料、茶货、箱盖与绳，再点箱口。\n\n现钱不足可借款一次，或赊箱、赊运，最后还账。\n货色不足可再处理；带风险装运，到货后另谈价格。\n\n单机停留不清空。F11切换全屏；Esc打开结束菜单。", "help", 25)
+	_modal("陈叔的生意经", "“币”为游戏记账单位，金额与天数为压缩后的游戏设定。\n货色为0—100分；货色、数量、交期都满足，原单才算达标。\n\n阅读、手势练习不耗天数；经营选择才记钱与时间。\n看汤色：按住茶杯，左右轻晃三次，再松手。\n翻茶：按住竹铲，沿茶盘绕一圈，方向任选。\n封绳：沿两道绳路描画；装船：拖箱组对齐轮廓后松手。\n放偏可重试，中途松手可继续；手速不影响货色与收益。\n\n现钱不足可借款或赊账，最终清算；货色不足可再处理。\n操作中查看帮助或原画会暂停，回来重新按住工具继续。\n单机停留不清空。F11切换全屏；Esc打开结束菜单。", "help", 25)
 
 func _show_audio_settings() -> void:
 	var panel := _modal("声音设置", "", "audio")
@@ -1105,6 +1171,7 @@ func _show_history(enlarged: bool = false) -> void:
 	add_child(overlay)
 	overlay_kind = "history"
 	workshop_performance.paused = true
+	gesture_workshop.suspend()
 	_rect(overlay, Rect2(0, 0, 1920, 1080), Color(0.02, 0.06, 0.04, 0.82))
 	var panel := _panel(overlay, Rect2(20, 20, 1880, 1040) if enlarged else Rect2(125, 70, 1670, 940), PAPER, GOLD)
 	_label(panel, "外销画里的十三行 · " + str(entry.heading), Rect2(42, 24, 1585, 70), 39, INK, true)

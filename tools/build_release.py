@@ -111,7 +111,7 @@ def main():
         if digest(verified / "prototype/assets/audio" / filename) != audio[filename]["sha256"]:
             raise RuntimeError("Music changed during packaging")
     results = []
-    for script in ["test_music", "test_characters", "test_performance", "test_compatibility", "test_weather_history", "test_commissions_loading"]:
+    for script in ["test_music", "test_characters", "test_performance", "test_compatibility", "test_weather_history", "test_commissions_loading", "test_gestures"]:
         results += run_game(verified, out, "unpacked-" + script, "--headless", "--script",
                             "res://tests/" + script + ".gd", "--", "--self-test")
     run_game(verified, out, "unpacked-startup", "--resolution", "1280x720", "--position",
@@ -121,6 +121,10 @@ def main():
                         "--position", "-2400,-2400", "--rendering-method", "gl_compatibility",
                         "--max-fps", "30", "--audio-driver", "Dummy", "--script",
                         "res://tests/test_compatibility.gd", "--", "--self-test", "--compatibility", "--capture-compat")
+    results += run_game(verified, out, "unpacked-gestures-gpu", "--resolution", "1280x720",
+                        "--position", "-2400,-2400", "--rendering-method", "gl_compatibility",
+                        "--max-fps", "30", "--audio-driver", "Dummy", "--script",
+                        "res://tests/test_gestures.gd", "--", "--self-test", "--compatibility", "--capture-gestures")
     # Only promote a final artifact after every unpacked-package check passes.
     shutil.copy2(candidate, archive)
     checksum = digest(archive)
@@ -131,7 +135,7 @@ def main():
     (out / "build-info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     notes = (package / "docs/releases" / (tag + ".md")).read_text(encoding="utf-8")
     notes += (f"\n## 成品包验证\n\n从最终ZIP重新解压，无需编辑器导入，音乐循环、"
-              f"角色交易、计时演出与重复触摸兼容专项均通过，并完成实际GPU启动和30帧兼容模式检查。两首MP3的SHA256与工程原文件一致。\n\n"
+              f"角色交易、工序演出、手势互动与重复触摸兼容专项均通过，并完成实际GPU启动和30帧手势完整交易检查。两首MP3的SHA256与工程原文件一致。\n\n"
               f"源码提交：`{metadata['commit']}`。附件SHA256：`{checksum}`。\n")
     (out / "release-notes.md").write_text(notes, encoding="utf-8")
     print(json.dumps(info, ensure_ascii=True, indent=2), flush=True)

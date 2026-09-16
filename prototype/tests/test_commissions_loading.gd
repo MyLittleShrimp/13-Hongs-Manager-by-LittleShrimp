@@ -1,5 +1,6 @@
 extends SceneTree
 const Story = preload("res://scripts/commission_story.gd")
+const Gestures = preload("res://tests/gesture_test_driver.gd")
 var app
 var checks := 0
 var capture_enabled := false
@@ -38,9 +39,11 @@ func capture(name: String, wait: float = 0.0) -> void:
 	verify(root.get_texture().get_image().save_png(folder.path_join(name + ".png")) == OK, "Actual GPU frame")
 
 func finish_performance() -> void:
+	var revision: int = app.model.revision
+	if app.gesture_workshop.active: await Gestures.perform(app)
 	var deadline := Time.get_ticks_msec() + 4500
-	while app.action_busy and Time.get_ticks_msec() < deadline: await process_frame
-	verify(not app.action_busy, "Performance ends within its timeline")
+	while app.action_busy and app.model.revision == revision and Time.get_ticks_msec() < deadline: await process_frame
+	verify(not app.action_busy or app.model.revision != revision, "Work commits once after its performance or gesture")
 	await process_frame
 
 func packing_fixture(contract_index: int) -> void:
@@ -122,9 +125,9 @@ func run() -> void:
 		await capture("05_loading_" + str(i))
 		if i == 0:
 			await tap("scene_art")
-			var elapsed: float = app.workshop_performance.elapsed
+			var progress: float = app.gesture_workshop.progress()
 			await create_timer(0.3).timeout
-			verify(is_equal_approx(elapsed, app.workshop_performance.elapsed), "Looking at original pauses the loading timeline")
+			verify(is_equal_approx(progress, app.gesture_workshop.progress()), "Looking at original pauses the loading gesture")
 			await tap("close_help")
 		await finish_performance()
 		verify(app.model.loaded_count() == [4,7,10][i], "Counted batches total four, seven, ten")

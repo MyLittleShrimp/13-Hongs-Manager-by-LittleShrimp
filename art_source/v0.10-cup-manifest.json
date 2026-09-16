@@ -1,0 +1,14 @@
+{
+  "version": "0.10.0",
+  "method": "Built-in ImageGen; new image, original output copied without pixel edits",
+  "asset": "prototype/assets/props/tea_cup.png",
+  "prompt": "art_source/prompts/v0.10-tea-cup.txt",
+  "source": "C:/Users/MyClaw/.codex/generated_images/01a0a4d5-975d-72a1-bac2-66ecfb823f89/exec-c52835b2-4e7a-4709-9573-9ad5d72d7ec6.png",
+  "width": 1280,
+  "height": 1280,
+  "format": "PNG RGBA",
+  "bytes": 1361924,
+  "sha256": "ce84ab6b4bf1d08c642332f132981214b56574dfbad0412d48cac9530c4ef712",
+  "use": "Movable cup for tea-liquor inspection gesture",
+  "historical_status": "Game concept prop, subject to museum review; not a collection image"
+}

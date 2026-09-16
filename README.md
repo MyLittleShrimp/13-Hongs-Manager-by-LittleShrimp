@@ -1,8 +1,21 @@
 # 十三行 · 茶船将发
 
-**单机茶叶篇 v0.9.0｜Godot 4.7.2｜横屏鼠标／触摸**
+**单机茶叶篇 v0.10.0｜Godot 4.7.2｜横屏鼠标／触摸**
 
-**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.9.0 更新说明](docs/releases/v0.9.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.9.0-Windows-x64.zip`，包含两首背景音乐、全部场景与原画参考图和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.10.0 更新说明](docs/releases/v0.10.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.10.0-Windows-x64.zip`，包含两首背景音乐、全部场景与原画参考图和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+
+## v0.10.0 拖拽与手势互动
+
+- **拖箱上船**：十箱分为4＋3＋3三组，各轮排列不同。按住岸上箱组，拖到船上同形轮廓；轮廓变绿后松手，装妥才计数。
+- **轻晃茶杯**：选择「看汤色」，按住茶杯左右轻晃三次，松手后记下观察。
+- **绕盘翻茶**：复焙时按住竹铲，沿茶盘绕一圈，顺逆方向均可；翻茶后继续收茶回凉。
+- **沿路封绳**：从亮点沿两道绳路描画，绳子随手指路径收紧；中途松手可从亮点接着画。
+- 鼠标与原生单指触摸共用规则；拖偏可以重试，操作快慢不改变货色、盈亏或经营随机结果。
+- 阅读来信、原画、帮助或切出窗口时暂停；恢复后重新按住继续，避免松手误判与重复记账。
+
+![把整组茶箱拖入船上同形轮廓](docs/images/gesture-loading.png)
+
+操作方式、技术边界与验证见 [v0.10拖拽与手势互动](docs/v0.10拖拽与手势互动.md)。
 
 ## v0.9.0 订单故事与装船演出
 
