@@ -1,8 +1,20 @@
 # 十三行 · 茶船将发
 
-**单机茶叶篇 v0.10.0｜Godot 4.7.2｜横屏鼠标／触摸**
+**单机茶叶篇 v0.11.0｜Godot 4.7.2｜横屏鼠标／触摸**
 
-**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.10.0 更新说明](docs/releases/v0.10.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.10.0-Windows-x64.zip`，包含两首背景音乐、全部场景与原画参考图和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+**下载即玩：**[最新 Windows 完整包](https://github.com/MyLittleShrimp/13-Hongs-Manager-by-LittleShrimp/releases/latest) · [v0.11.0 更新说明](docs/releases/v0.11.0.md)。在 Release 的 Assets 中下载 `13-Hongs-Manager-v0.11.0-Windows-x64.zip`，包含两首背景音乐、全部场景与原画参考图和便携引擎；解压后双击「启动游戏.cmd」，无需安装 Python 或 Godot。旧版 Windows 触摸设备可用「启动兼容模式.cmd」。
+
+## v0.11.0 工序手势与操作衔接
+
+- 补齐摊叶、轻捻、拨火、移筛回凉、铺衬抹平、悬停倒茶和拖盖七个动作。
+- 按住工具盘中的道具直接拖到工作区即可操作；也可轻触取用后在附近抓取，无需再点开始。
+- 合盖后直接进入现有的描绳动作；原有晃杯、绕盘翻茶和三轮拖箱装船继续保留。
+- 有效进度支持暂停后继续，倒茶离开箱口就停，回凉完成才增加货色；重复操作不额外收费或重抽随机结果。
+- 两条完整UI交易逐步对照原经营模型通过，含复焙与不复焙路线；继续提供双曲音乐、历史原画、晴雨场景和兼容入口。
+
+![按住茶篓，移到箱口停一停](docs/images/craft-pouring.png)
+
+规则与验证见 [v0.11工序手势与操作衔接](docs/v0.11工序手势与操作衔接.md)。
 
 ## v0.10.0 拖拽与手势互动
 

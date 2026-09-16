@@ -4,6 +4,9 @@ var step := 0
 var sealed := false
 var performing := false
 var manual_rope := false
+var manual_lid_open := false
+var manual_fill := false
+var manual_liner := false
 var progress := 0.0
 var protection := 0.0
 var age := 0.0
@@ -28,7 +31,7 @@ func _rope(points: Array, amount: float) -> void:
 func _draw() -> void:
 	if sealed: return
 	var p := progress if performing else 0.0
-	if step >= 1 or (performing and step == 0):
+	if step >= 1 or (performing and step == 0 and (not manual_liner or p > 0)):
 		var unfold := smoothstep(0, 0.72, p) if step == 0 else 1.0
 		var center := Vector2(0, -(1 - unfold) * 110)
 		var paper := PackedVector2Array()
@@ -37,13 +40,17 @@ func _draw() -> void:
 		for i in 6:
 			draw_line(paper[0].lerp(paper[1], i / 6.0), paper[3].lerp(paper[2], i / 6.0), Color(0.40,0.31,0.19,0.2), 1, true)
 	if step >= 2 or (performing and step == 1):
+		var filled := p if manual_fill else (p if step == 1 else 1.0)
+		if filled > 0:
+			var tea := PackedVector2Array([RIM[0]*0.94,RIM[0].lerp(RIM[1],filled)*0.94,RIM[3].lerp(RIM[2],filled)*0.94,RIM[3]*0.94])
+			draw_colored_polygon(tea,Color("4e452d"))
 		for i in 110:
 			var u := fmod(i * 0.618, 1.0)
 			var v := fmod(i * 0.414, 1.0)
 			var target: Vector2 = RIM[0].lerp(RIM[1], u).lerp(RIM[3].lerp(RIM[2], u), v) * Vector2(0.94, 0.85)
-			var fall := clampf((p - (i % 13) * 0.035) * 2.4, 0, 1) if step == 1 else 1.0
+			var fall := (1.0 if u < p else 0.0) if manual_fill else (clampf((p - (i % 13) * 0.035) * 2.4, 0, 1) if step == 1 else 1.0)
 			if fall > 0: _leaf(Vector2(97,-150).lerp(target, fall), i)
-	if performing and step == 2:
+	if performing and step == 2 and not manual_lid_open:
 		var lower := smoothstep(0.06, 0.5, p)
 		var lid := PackedVector2Array()
 		for point in LID: lid.append(point + Vector2(0, -115 * (1 - lower)))

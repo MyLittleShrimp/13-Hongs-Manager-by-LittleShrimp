@@ -82,9 +82,9 @@ func run() -> void:
 	await capture("01_leaf_observation")
 	await tap("help")
 	await process_frame
-	var elapsed: float = app.workshop_performance.elapsed
+	var elapsed: float = app.gesture_workshop.progress()
 	await create_timer(0.35).timeout
-	verify(is_equal_approx(app.workshop_performance.elapsed, elapsed) and app.model.inspection_marks.is_empty(), "Help pauses the pending performance")
+	verify(is_equal_approx(app.gesture_workshop.progress(), elapsed) and app.model.inspection_marks.is_empty(), "Help pauses the pending gesture")
 	await tap("close_help")
 	await wait_for_performance()
 	verify(app.model.inspection_marks == [0] and app.model.cash == cash and app.model.rng.state == random_state, "One observation, no additional fees or random draws")
@@ -133,7 +133,7 @@ func run() -> void:
 		await create_timer(0.5).timeout
 		layout(app.page)
 		await capture(["05_charcoal", "06_turning_tea", "07_cooling"][i])
-		if i == 2: verify(app.current_location == "roasting" and app.tool_sprite.visible, "Final cooling stays in the roasting room")
+		if i == 2: verify(app.current_location == "roasting" and app.gesture_workshop.kind == "sieve", "Final cooling stays in the roasting room")
 		await wait_for_performance()
 		verify(app.model.cash == cash and app.model.ticks == ticks and app.model.rng.state == random_state, "Animation adds no money, time or random changes")
 	verify(app.model.quality == 84 and app.current_location == "inspection", "Finish cooling then return with quality 84")

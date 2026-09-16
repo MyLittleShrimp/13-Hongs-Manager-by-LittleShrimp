@@ -104,9 +104,9 @@ func run() -> void:
 		await capture("03_packing_" + str(i))
 		if i == 1:
 			await tap("commission")
-			var elapsed: float = app.workshop_performance.elapsed
+			var elapsed: float = app.gesture_workshop.progress()
 			await create_timer(0.3).timeout
-			verify(is_equal_approx(elapsed, app.workshop_performance.elapsed), "Letter pauses packing")
+			verify(is_equal_approx(elapsed, app.gesture_workshop.progress()), "Letter pauses packing")
 			await tap("close_help")
 		app._choose(0, "packing_work", app.model.revision)
 		await finish_performance()

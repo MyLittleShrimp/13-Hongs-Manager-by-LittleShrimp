@@ -32,11 +32,59 @@ static func wait_ready(app, device: String) -> void:
 		await app.get_tree().create_timer(app.input_guard.suppression_ms/1000.0+0.04).timeout
 	await app.get_tree().process_frame
 
+static func travel(app, start: Vector2, end: Vector2, device: String = "touch", steps: int = 12) -> void:
+	for i in range(1,steps+1):
+		move(app,start.lerp(end,i/float(steps)),device)
+		await app.get_tree().process_frame
+
+static func complete_lid(app, device: String = "touch") -> void:
+	await wait_ready(app,device)
+	var g = app.gesture_workshop
+	edge(app,g.object_position,true,device)
+	await travel(app,g.object_position,g.BOX,device)
+	edge(app,g.BOX,false,device)
+	await app.get_tree().process_frame
+
 static func perform(app, device: String = "touch") -> void:
 	await wait_ready(app,device)
 	var g = app.gesture_workshop
 	if not g.active: return
+	var cooling: bool = g.kind == "sieve"
 	match g.kind:
+		"spread", "fire":
+			var center: Vector2 = g.LEAVES if g.kind == "spread" else g.FIRE
+			edge(app,g.object_position,true,device)
+			await travel(app,g.object_position,center,device)
+			await travel(app,center,center-Vector2(140,0),device)
+			await travel(app,center-Vector2(140,0),center+Vector2(140,0),device,20)
+			edge(app,center+Vector2(140,0),false,device)
+		"knead":
+			edge(app,g.PINCH,true,device)
+			for side in [-1,1,-1,1,-1]:
+				move(app,g.PINCH+Vector2(side*50,0),device)
+				await app.get_tree().process_frame
+			edge(app,g.PINCH-Vector2(50,0),false,device)
+		"sieve":
+			edge(app,g.object_position,true,device)
+			if g.phase == 0:
+				await travel(app,g.object_position,g.COLLECT,device)
+				await app.get_tree().create_timer(0.55).timeout
+			await travel(app,g.object_position,g.COOL,device)
+			edge(app,g.COOL,false,device)
+		"liner":
+			if g.phase == 0:
+				edge(app,g.object_position,true,device)
+				await travel(app,g.object_position,g.BOX,device)
+				edge(app,g.BOX,false,device)
+			var start: Vector2 = g.WIPE_START.lerp(g.WIPE_END,g.amount)
+			edge(app,start,true,device)
+			await travel(app,start,g.WIPE_END,device)
+			edge(app,g.WIPE_END,false,device)
+		"pour":
+			edge(app,g.object_position,true,device)
+			await travel(app,g.object_position,g.POUR,device)
+			await app.get_tree().create_timer(1.3).timeout
+			edge(app,g.POUR,false,device)
 		"loading":
 			var start: Vector2 = g.object_position + g.cells[0]*g.CELL + g.BOX_SIZE/2
 			var end: Vector2 = start + g.target - g.object_position
@@ -60,7 +108,8 @@ static func perform(app, device: String = "touch") -> void:
 				move(app,g.PAN_CENTER+Vector2(cos(angle),sin(angle))*g.PAN_RADIUS,device)
 				await app.get_tree().process_frame
 			edge(app,g.object_position,false,device)
-		"rope":
+		"seal", "rope":
+			if g.kind == "seal": await complete_lid(app,device)
 			for route in range(g.rope_index,2):
 				var path: PackedVector2Array = g.rope_routes[route]
 				edge(app,path[g.rope_point-1],true,device)
@@ -69,4 +118,4 @@ static func perform(app, device: String = "touch") -> void:
 					await app.get_tree().process_frame
 				edge(app,path[-1],false,device)
 				await app.get_tree().process_frame
-	await app.get_tree().create_timer(0.55).timeout
+	await app.get_tree().create_timer(1.05 if cooling else 0.55).timeout

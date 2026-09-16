@@ -111,7 +111,7 @@ def main():
         if digest(verified / "prototype/assets/audio" / filename) != audio[filename]["sha256"]:
             raise RuntimeError("Music changed during packaging")
     results = []
-    for script in ["test_music", "test_characters", "test_performance", "test_compatibility", "test_weather_history", "test_commissions_loading", "test_gestures"]:
+    for script in ["test_music", "test_characters", "test_performance", "test_compatibility", "test_weather_history", "test_commissions_loading", "test_gestures", "test_craft_gestures"]:
         results += run_game(verified, out, "unpacked-" + script, "--headless", "--script",
                             "res://tests/" + script + ".gd", "--", "--self-test")
     run_game(verified, out, "unpacked-startup", "--resolution", "1280x720", "--position",
@@ -125,6 +125,10 @@ def main():
                         "--position", "-2400,-2400", "--rendering-method", "gl_compatibility",
                         "--max-fps", "30", "--audio-driver", "Dummy", "--script",
                         "res://tests/test_gestures.gd", "--", "--self-test", "--compatibility", "--capture-gestures")
+    results += run_game(verified, out, "unpacked-crafts-gpu", "--resolution", "1280x720",
+                        "--position", "-2400,-2400", "--rendering-method", "gl_compatibility",
+                        "--max-fps", "30", "--audio-driver", "Dummy", "--script",
+                        "res://tests/test_craft_gestures.gd", "--", "--self-test", "--compatibility", "--capture-crafts")
     # Only promote a final artifact after every unpacked-package check passes.
     shutil.copy2(candidate, archive)
     checksum = digest(archive)

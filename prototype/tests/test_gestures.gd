@@ -59,8 +59,7 @@ func fixture(place: String) -> void:
 	app._render()
 	await create_timer(0.9).timeout
 	if place == "cup": await tap("observe_2")
-	elif place == "stir": await tap("work_action")
-	elif place == "rope": await tap("pack_action")
+	elif place == "rope": await Driver.complete_lid(app)
 	verify(app.gesture_workshop.active and app.action_busy,"Expected gesture is active: "+place)
 	await Driver.wait_ready(app,"touch")
 
@@ -195,8 +194,7 @@ func stir_checks() -> void:
 	verify(app.model.roast_step == 2 and app.model.quality == 72 and fixed() == money,"Stirring alone cannot grant the whole roast gain: " + str([app.model.stage,app.model.roast_step,app.model.quality,g.active,g.amount,g.stir_direction,g.pointer_owner,fixed(),money]))
 	# Finish the existing cooling performance through the UI.
 	await tap("tool_2")
-	await tap("work_action")
-	await create_timer(2.1).timeout
+	await Driver.perform(app)
 	verify(app.model.quality == 84 and app.model.stage == "remedy","Cooling retains the original 72 to 84 result")
 
 func rope_checks() -> void:
