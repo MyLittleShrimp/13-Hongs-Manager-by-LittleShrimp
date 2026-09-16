@@ -1,4 +1,5 @@
 extends RefCounted
+const Commission = preload("res://scripts/commission_story.gd")
 ## Seeded economy. UI never draws randomness or books money.
 var data: Dictionary
 var rng := RandomNumberGenerator.new()
@@ -16,6 +17,8 @@ var quality := 0
 var inspected := 0
 var quality_report := "尚未验茶"
 var packing_step := 0
+var loading_step := 0
+const LOAD_COUNTS := [4, 3, 3]
 var cargo_event := ""
 var last_line := ""
 var ledger: Array[Dictionary] = []
@@ -90,6 +93,7 @@ func reset(seed_value: int = -1) -> void:
 	quality = 0
 	inspected = 0
 	packing_step = 0
+	loading_step = 0
 	quality_report = "尚未验茶"
 	cargo_event = ""
 	last_line = ""
@@ -138,7 +142,7 @@ func _choose_impl(index: int) -> bool:
 			contract = data.contracts[index].duplicate(true)
 			_book("deposit", "订单预付款", int(data.deposit))
 			stage = "market"
-			_event("接下订单", "船期已定。先去茶市挑一批合适的货。")
+			_event("接下订单", str(Commission.profile(contract).title) + "。" + str(Commission.profile(contract).promise))
 		"market":
 			if cash < quotes[index] + _reserved: return false
 			supplier = data.suppliers[index].duplicate(true)
@@ -185,8 +189,16 @@ func _choose_impl(index: int) -> bool:
 				_event("十箱封妥", "%s，衬料、茶货、封绳已逐步完成。请船家点货装船。" % packaging.name)
 		"packing_seal":
 			if index != 0: return false
-			stage = "dock"
-			last_line = "茶箱封好了？江上风色不定，得挑个走法。"
+			stage = "loading_work"
+			loading_step = 0
+			last_line = "我来接应，你照着箱数点货。先搬四箱，再分两批各搬三箱。"
+		"loading_work":
+			if index != 0 or loading_step >= LOAD_COUNTS.size(): return false
+			loading_step += 1
+			last_line = "已装船%d箱，岸上还剩%d箱。下一批接着点。" % [loaded_count(), int(data.quantity) - loaded_count()]
+			if loading_step == LOAD_COUNTS.size():
+				stage = "dock"
+				_event("码头点货", "十箱逐批点齐、装船。装箱费与时间已在选择包装时记账，点货不重复收费。")
 		"dock": return _sail(index)
 		"voyage": return _resolve_voyage(index)
 		"voyage_report":
@@ -535,6 +547,7 @@ func available(index: int) -> bool:
 		"intro", "shipment_review", "acceptance": return index < 2
 		"packing_work": return index == 0 and work_tool == packing_step
 		"bargain_result", "packing_seal", "voyage_report", "arrival", "result": return index == 0
+		"loading_work": return index == 0 and loading_step < LOAD_COUNTS.size()
 		"attract", "epilogue": return false
 	return true
 
@@ -552,15 +565,20 @@ func location() -> String:
 	if stage in ["roast_plan", "roasting_work"]: return "roasting"
 	if stage in ["packing", "packing_work", "packing_seal"]: return "packing"
 	if stage in ["voyage", "voyage_report"]: return "vessel"
-	if stage in ["dock", "acceptance", "arrival"]: return "dock"
+	if stage in ["loading_work", "dock", "acceptance", "arrival"]: return "dock"
 	return "counter"
 
 func chapter() -> int:
 	if stage in ["attract", "intro", "contract"]: return 0
 	if stage in ["market", "bargain", "bargain_chat", "bargain_result", "inspection", "inspection_work", "remedy", "shipment_review", "roast_plan", "roasting_work"]: return 1
 	if stage in ["packing", "packing_work", "packing_seal"]: return 2
-	if stage in ["dock", "voyage", "voyage_report"]: return 3
+	if stage in ["loading_work", "dock", "voyage", "voyage_report"]: return 3
 	return 4
+
+func loaded_count() -> int:
+	var count := 0
+	for i in mini(loading_step, LOAD_COUNTS.size()): count += int(LOAD_COUNTS[i])
+	return count
 
 func ending() -> Array:
 	if result.is_empty(): return ["茶船将发", "这一趟还在路上。", "先把手里的事做完。"]

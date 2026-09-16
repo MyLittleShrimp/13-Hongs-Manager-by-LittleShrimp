@@ -15,6 +15,8 @@ const WorkshopPerformance = preload("res://scripts/workshop_performance.gd")
 const InputGuard = preload("res://scripts/input_guard.gd")
 const MoneyIcon = preload("res://scripts/money_icon.gd")
 const WeatherScene = preload("res://scripts/weather_scene.gd")
+const CommissionStory = preload("res://scripts/commission_story.gd")
+const LoadingEffect = preload("res://scripts/loading_effect.gd")
 const INK := Color("22392e")
 const PAPER := Color("f4eddd")
 const GOLD := Color("d9b879")
@@ -44,6 +46,7 @@ var player_actor
 var npc_actor
 var crate: TextureRect
 var packing_effect
+var loading_effect
 var workshop_effect
 var cargo_group: Node2D
 var cargo_sprites: Array[TextureRect] = []
@@ -123,6 +126,9 @@ func _ready() -> void:
 	crate = _texture(world, "res://assets/props/tea_crate.png", Rect2(780, 540, 350, 235))
 	packing_effect = PackingEffect.new()
 	world.add_child(packing_effect)
+	loading_effect = LoadingEffect.new()
+	loading_effect.font = font_body
+	world.add_child(loading_effect)
 	cargo_group = Node2D.new()
 	world.add_child(cargo_group)
 	for i in 10:
@@ -179,6 +185,13 @@ func _process(delta: float) -> void:
 			if pending_work.get("stage", "") == "roasting_work":
 				tool_sprite.position = workshop_performance.tool_position()
 				tool_sprite.rotation = workshop_performance.tool_rotation()
+			if pending_work.get("stage", "") == "packing_work":
+				packing_effect.progress = workshop_performance.progress()
+				tool_sprite.visible = model.packing_step == 1
+				tool_sprite.position = Vector2(1070, 433)
+				tool_sprite.rotation = -0.15 - sin(workshop_performance.progress() * PI) * 0.55
+			if pending_work.get("stage", "") == "loading_work":
+				loading_effect.progress = workshop_performance.progress()
 			if is_instance_valid(work_progress): work_progress.size.x = 580 * workshop_performance.progress()
 	if is_instance_valid(cargo_group) and cargo_group.visible:
 		cargo_group.position.y = cargo_base_y + sin(float(Time.get_ticks_msec()) / 550.0) * (4 if model.stage == "voyage" else 0)
@@ -190,7 +203,7 @@ func _process(delta: float) -> void:
 	if not bool(settings.get("kiosk_mode", false)): return
 	idle_seconds += delta
 	var limit := float(settings.reset_seconds)
-	if model.stage == "epilogue" or overlay_kind in ["help", "ledger", "history", "avatar", "support", "audio"]:
+	if model.stage == "epilogue" or overlay_kind in ["help", "ledger", "history", "avatar", "support", "audio", "commission"]:
 		limit = float(settings.reading_reset_seconds)
 	elif model.stage == "result":
 		limit = float(settings.result_reset_seconds)
@@ -401,7 +414,12 @@ func _update_world() -> void:
 			player_actor.walking = false
 			player_actor.position = Vector2(345, 790)
 			npc_actor.position = Vector2(1535, 790)
-	var scene_scale := 0.80 if place in ["inspection", "roasting", "vessel"] else 1.0
+	if model.stage in ["contract", "epilogue"] or place == "dock":
+		if player_actor.motion: player_actor.motion.kill()
+		player_actor.walking = false
+		player_actor.position = Vector2(265 if model.stage == "contract" else 365, 790)
+		npc_actor.position = Vector2(1740 if place == "dock" else 1700, 790)
+	var scene_scale := 0.80 if place in ["inspection", "roasting", "vessel", "dock"] or model.stage in ["contract", "epilogue"] else 1.0
 	player_actor.scale = Vector2.ONE * scene_scale
 	npc_actor.scale = Vector2.ONE * scene_scale
 	atmosphere.place = place
@@ -419,6 +437,16 @@ func _update_world() -> void:
 	packing_effect.position = Vector2(967, 557)
 	packing_effect.step = model.packing_step
 	packing_effect.age = 0
+	packing_effect.performing = action_busy and model.stage == "packing_work"
+	packing_effect.progress = workshop_performance.progress() if packing_effect.performing else 0.0
+	packing_effect.protection = float(model.packaging.get("protection", 0))
+	packing_effect.modulate = WeatherScene.actor_tint(sky)
+	loading_effect.visible = model.stage == "loading_work" or (model.stage == "dock" and model.loaded_count() == 10)
+	loading_effect.loaded = model.loaded_count()
+	loading_effect.batch = model.LOAD_COUNTS[mini(model.loading_step, 2)]
+	loading_effect.performing = action_busy and model.stage == "loading_work"
+	loading_effect.progress = workshop_performance.progress() if loading_effect.performing else 0.0
+	loading_effect.modulate = WeatherScene.actor_tint(sky)
 	workshop_effect.configure(model)
 	if model.stage not in ["roasting_work", "packing_work"]:
 		if tool_motion: tool_motion.kill()
@@ -443,15 +471,13 @@ func _update_world() -> void:
 		crate.size = Vector2(490, 327)
 		if not changed:
 			player_actor.walk_to(Vector2(635, 790), 0.65)
-		var tween := create_tween()
-		crate.position.y += 36
-		tween.tween_property(crate, "position:y", 462.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	elif cargo_group.visible: crate.visible = false
 	elif model.stage in ["arrival", "acceptance"]:
 		crate.position = Vector2(1560, 579)
 		crate.size = Vector2(260, 175)
 		crate.modulate = Color("a7957c") if model.pending_delivery.get("damaged", false) else Color.WHITE
 	crate.modulate *= WeatherScene.actor_tint(sky)
+	if loading_effect.visible: crate.visible = false
 
 func _header() -> void:
 	_panel(page, Rect2(26, 22, 1868, 84), DARK)
@@ -481,6 +507,7 @@ func _header() -> void:
 		_label(page, model.contract.name + " · 十箱茶", Rect2(1503, 147, 355, 38), 27, GOLD)
 		_label(page, "货色要求 %d  ·  每箱 %d币" % [model.contract.quality, model.contract.price], Rect2(1503, 193, 355, 34), 23)
 		_label(page, model.quality_report, Rect2(1503, 237, 355, 30), 23, MUTED)
+		_button(page, "commission", "这单的来信", Rect2(1482, 292, 400, 56), _show_commission)
 	idle_hint = _label(page, "轻触下方选项，让这笔生意继续。", Rect2(630, 745, 680, 40), 25, GOLD)
 	idle_hint.visible = false
 
@@ -514,11 +541,11 @@ func _render_attract() -> void:
 
 func _story() -> Array:
 	var name := str(avatar_profile.display_name)
-	if action_busy: return ["梁老板" if model.stage == "inspection_work" else "陈叔", workshop_performance.dialogue()]
+	if action_busy: return ["梁老板" if model.stage == "inspection_work" else ("阿顺" if model.stage == "loading_work" else "陈叔"), workshop_performance.dialogue()]
 	match model.stage:
-		"intro": return ["陈叔 · 行号老管事", name + "，黄埔的商船就要启航了。外商托行号采办十箱茶，这回让你独当一面。"]
-		"contract": return ["陈叔", model.last_line + " 三种茶单，交期和货色要求各不相同。"]
-		"market": return ["梁老板 · 茶商", MarketStory.welcome(model)]
+		"intro": return ["陈叔 · 行号老管事", name + "，怀特捎来三份茶单：一位老客，一条等货的船，还有一位带着茶样的客人。你来挑一单照应。"]
+		"contract": return ["陈叔", "三份委托，各有一桩要紧事。老客盼守约，急单等开船，带茶样的客人最在意货色。你先接哪一单？"]
+		"market": return ["梁老板 · 茶商", CommissionStory.market(model)]
 		"bargain": return ["梁老板", MarketStory.before_offer(model)]
 		"bargain_chat": return [name, "梁老板，先不急着定价。我想问清这批货，再掂量怎么成交。"]
 		"bargain_result":
@@ -534,13 +561,14 @@ func _story() -> Array:
 				return ["陈叔", QualityDisplay.roast_response(model)]
 			return [name, MarketStory.inspection_response(model) if just_inspected else model.last_line]
 		"shipment_review": return ["陈叔", "这批货仍有不达标风险。可以回去处理；也可以装运，到货后再决定是否接受折价。"]
-		"packing": return ["陈叔", ("外头云低，箱里的防潮不能轻看。" if model.weather > 0 else "天晴也得防舱底潮气。") + " 选好包装，我们一起封箱。"]
+		"packing": return ["陈叔", CommissionStory.packing(model)]
 		"packing_work": return ["陈叔", ["先取下方衬料，再点箱口铺进去。隔开箱壁，少一分潮气。", "取来茶货，再点箱口装入。码放平整，路上才少些晃动。", "取来箱盖和绳，再点箱口封好。这十箱茶，就要交给船家了。"][model.packing_step]]
 		"packing_seal": return ["陈叔", model.last_line]
+		"loading_work": return ["阿顺 · 船家", model.last_line]
 		"dock":
 			if model.bargain_result.get("delay", 0) > 0:
 				return ["阿顺 · 船家", "茶市多等了%d天？%s。快船、合运还是沿岸走，你得把后面的风浪也算上。" % [model.bargain_result.delay, _delivery_time_text()]]
-			return ["阿顺 · 船家", "%s已经备好。%s" % [model.packaging.name, _delivery_time_text() + "，路线得细算。" if model.ticks >= model.contract.deadline - 3 else "走得快、走得稳，价钱和风险各不相同。"]]
+			return ["阿顺 · 船家", CommissionStory.dock(model)]
 		"voyage": return ["阿顺", model.last_line]
 		"voyage_report": return ["阿顺", model.last_line + " 靠岸后，交接人还要复核货色和船期。"]
 		"acceptance": return ["怀特 · 商船交接人", model.last_line]
@@ -578,7 +606,7 @@ func _choices() -> Array:
 		"packing":
 			for p in model.data.packing:
 				options.append([p.name + " · 花费%d币" % p.cost, "耗时%d天 · %s" % [p.ticks, p.description]])
-		"packing_work": return []
+		"packing_work", "loading_work": return []
 		"packing_seal": return [["请阿顺点货装船", "十箱已封妥 · 前往驳运码头"]]
 		"dock":
 			for r in model.data.routes:
@@ -623,7 +651,11 @@ func _render_story() -> void:
 			var expected: String = model.stage
 			_button(page, "choice_%d" % i, value, Rect2(start + i * (width + 22), 931, width, 115),
 				_choose.bind(i, expected, model.revision), count == 1, not enabled)
-	if model.stage in ["packing_work", "roasting_work"]:
+	if model.stage == "contract":
+		_render_commissions()
+	elif model.stage == "loading_work":
+		_render_loading()
+	elif model.stage in ["packing_work", "roasting_work"]:
 		_render_workbench()
 	elif model.stage in ["market", "bargain", "bargain_chat", "bargain_result"]:
 		_render_market_counter()
@@ -640,6 +672,10 @@ func _render_story() -> void:
 	elif model.stage == "packing_seal":
 		_panel(page, Rect2(666, 289, 587, 106), DARK, GOLD)
 		_label(page, "十箱封妥 · 准备装船", Rect2(699, 303, 530, 79), 39, GOLD, true)
+	elif model.stage == "dock" and model.loaded_count() == 10:
+		_panel(page, Rect2(665, 303, 610, 115), DARK, GOLD)
+		_label(page, "十箱点齐 · 请选择驳运路线", Rect2(695, 316, 555, 58), 32, GOLD, true)
+		_label(page, "装船清点 10 / 10 · 尚未起航", Rect2(697, 374, 550, 31), 23)
 	elif model.stage == "voyage":
 		_panel(page, Rect2(671, 306, 579, 123), DARK, GOLD)
 		_label(page, {"squall":"江上突遇风雨", "leak":"舱底发现渗水", "clear":"顺水抵达交接处"}[model.cargo_event], Rect2(709, 320, 520, 94), 41, GOLD, true)
@@ -712,6 +748,34 @@ func _render_workbench() -> void:
 		icon.position = Vector2(15, 8)
 		icon.size = Vector2(116, 95)
 		icon.modulate.a = 1.0 if i == step else 0.45
+
+func _render_commissions() -> void:
+	for i in model.data.contracts.size():
+		var contract: Dictionary = model.data.contracts[i]
+		var story: Dictionary = CommissionStory.profile(contract)
+		var card := _panel(page, Rect2(439 + i * 352, 259, 332, 408), PAPER, GOLD)
+		card.name = "Commission_%d" % i
+		_texture(card, "res://assets/backgrounds/%s.png" % story.image, Rect2(14, 14, 304, 136), true)
+		_label(card, story.title, Rect2(18, 159, 296, 70), 29, INK, true)
+		_label(card, story.pitch, Rect2(18, 235, 296, 90), 22, INK)
+		_label(card, "%s · %s" % [contract.name, story.tag], Rect2(18, 342, 296, 48), 20, INK)
+
+func _render_loading() -> void:
+	var count: int = model.loaded_count()
+	_panel(page, Rect2(655, 243, 637, 137), DARK, GOLD)
+	_label(page, "码头点货 · 已装船 %d / 10 箱" % count, Rect2(684, 253, 582, 55), 33, GOLD, true).name = "LoadingCount"
+	_label(page, "阿顺接应中 · 这一批搬完再记数" if action_busy else "分批点清，逐箱搬妥；岸上还有%d箱。" % (10-count), Rect2(684, 310, 582, 43), 24)
+	if action_busy:
+		_rect(page, Rect2(681, 367, 580, 5), Color("50604b"))
+		work_progress = _rect(page, Rect2(681, 367, 1, 5), GOLD)
+	_button(page, "loading_action", "正在点货装船" if action_busy else "点清这%d箱，交给阿顺\n装船清点不另扣钱与天数" % model.LOAD_COUNTS[model.loading_step], Rect2(650, 934, 620, 111), _choose.bind(0, "loading_work", model.revision), true, action_busy)
+
+func _show_commission() -> void:
+	if model.contract.is_empty(): return
+	var contract: Dictionary = model.contract
+	var story: Dictionary = CommissionStory.profile(contract)
+	var body := "怀特代客人捎来的话：\n“%s”\n\n约定：十箱茶 · %d天内交货 · 货色至少%d\n每箱%d币 · 逾期每天扣%d币\n\n陈叔嘱咐：%s\n\n这封来信为游戏虚构委托；实际交期、货色和盈亏由经营过程决定。" % [story.letter, contract.deadline, contract.quality, contract.price, contract.penalty, story.promise]
+	_modal(story.title, body, "commission", 26)
 
 func _tool_texture(index: int, roast: bool) -> AtlasTexture:
 	var atlas := AtlasTexture.new()
@@ -814,16 +878,18 @@ func _render_result() -> void:
 
 func _render_epilogue() -> void:
 	var ending: Array = model.ending()
-	_panel(page, Rect2(586, 240, 795, 485), DARK, GOLD)
-	_label(page, ending[0], Rect2(631, 269, 705, 80), 44, GOLD, true)
-	_label(page, ending[1], Rect2(631, 379, 705, 144), 31)
-	_label(page, ending[2], Rect2(631, 540, 705, 117), 28, GOLD)
+	var letter: Dictionary = CommissionStory.closing(model)
+	_panel(page, Rect2(536, 223, 855, 527), DARK, GOLD)
+	_label(page, letter.title, Rect2(576, 241, 775, 67), 42, GOLD, true)
+	_label(page, ending[0], Rect2(576, 313, 775, 48), 28, MUTED)
+	_label(page, letter.buyer, Rect2(576, 370, 775, 168), 29)
+	_label(page, letter.master, Rect2(576, 553, 775, 167), 28, GOLD)
 	_panel(page, Rect2(40, 800, 1840, 112), DARK, GOLD)
 	_label(page, str(avatar_profile.display_name), Rect2(66, 813, 285, 82), 29, GOLD)
 	_label(page, MarketStory.ending_echo(model), Rect2(382, 813, 1320, 82), 30)
 	_button(page, "again", "再做一单 · 新行情", Rect2(335, 934, 592, 112), func(): _end_session("replay"); _start())
 	_button(page, "finish", "合上账本，完成体验", Rect2(950, 934, 640, 112), func(): _end_session("completed"), true)
-	_label(page, "知识依据：香港艺术馆「外销艺术」藏品说明；人物、场景、故事与数值为艺术化设定。", Rect2(405, 745, 1160, 37), 20, PAPER)
+	_label(page, "委托故事与人物为虚构；原画与出处可在「外销画」中查看。", Rect2(540, 755, 1030, 37), 20, PAPER)
 
 func _start() -> void:
 	if overlay_kind != "" or (transition_guard > 0 and not test_mode): return
@@ -836,7 +902,7 @@ func _start() -> void:
 
 func _choose(index: int, expected: String, expected_revision: int = -1) -> void:
 	if action_busy or overlay_kind != "" or model.stage != expected or (transition_guard > 0 and not test_mode): return
-	if not test_mode and expected in ["inspection_work", "roasting_work"]:
+	if not test_mode and expected in ["inspection_work", "roasting_work", "packing_work", "loading_work"]:
 		if expected_revision >= 0 and model.revision != expected_revision: return
 		if not model.available(index): return
 		_begin_work_performance(index, expected)
@@ -847,10 +913,11 @@ func _begin_work_performance(index: int, stage: String) -> void:
 	pending_work = {"index":index, "stage":stage, "revision":model.revision}
 	action_busy = true
 	if tool_motion: tool_motion.kill()
-	workshop_performance.begin(stage, index if stage == "inspection_work" else int(model.roast_step))
+	var step: int = {"inspection_work":index, "roasting_work":model.roast_step, "packing_work":model.packing_step, "loading_work":model.loading_step}[stage]
+	workshop_performance.begin(stage, step)
 	_render()
-	player_actor.walk_to(Vector2(485, 790), 0.32)
-	npc_actor.walk_to(Vector2(1450, 790), 0.32)
+	player_actor.walk_to(Vector2(580 if stage == "loading_work" else (620 if stage == "packing_work" else 485), 790), 0.32)
+	npc_actor.walk_to(Vector2(1740 if stage == "loading_work" else (1420 if stage == "packing_work" else 1450), 790), 0.32)
 	player_actor.react("inspect" if stage == "inspection_work" else "work", workshop_performance.duration)
 	npc_actor.react("agree", workshop_performance.duration)
 	idle_seconds = 0

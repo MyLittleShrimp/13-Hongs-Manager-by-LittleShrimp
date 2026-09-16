@@ -35,6 +35,8 @@ func act(t, index: int) -> void:
 		for i in 3: act(t, 0)
 	if t.stage == "voyage_report" and stage == "voyage": act(t, 0)
 	if t.stage == "packing_seal" and stage == "packing_work": act(t, 0)
+	if t.stage == "loading_work" and stage == "packing_seal":
+		for i in 3: act(t, 0)
 
 func purchased(seed_value: int = 121):
 	var t = Trade.new(config)

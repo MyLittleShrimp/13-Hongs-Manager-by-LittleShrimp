@@ -1,33 +1,61 @@
 extends Node2D
-## Tea and paper move into the open chest; decorative motion uses its own fixed layout.
+## Layers on the existing chest, driven by the shared pausable timeline.
 var step := 0
-var age := 0.0
 var sealed := false
+var performing := false
+var progress := 0.0
+var protection := 0.0
+var age := 0.0
+const RIM := [Vector2(-178,18), Vector2(-80,-52), Vector2(176,0), Vector2(88,48)]
+const LID := [Vector2(-220,8), Vector2(-83,-81), Vector2(219,-15), Vector2(95,68)]
 
-func _process(delta: float) -> void:
-	age += delta
+func _process(_delta: float) -> void:
 	queue_redraw()
 
+func _leaf(at: Vector2, index: int) -> void:
+	draw_set_transform(at, index * 1.37, Vector2(1, 0.5))
+	draw_colored_polygon(PackedVector2Array([Vector2(-7,0),Vector2(-2,-4),Vector2(8,0),Vector2(1,4)]), Color("4e5432") if index % 2 == 0 else Color("746340"))
+	draw_set_transform(Vector2.ZERO)
+
+func _rope(points: Array, amount: float) -> void:
+	for i in points.size() - 1:
+		var p := clampf(amount * (points.size() - 1) - i, 0, 1)
+		if p > 0:
+			draw_line(points[i], points[i].lerp(points[i+1], p), Color("765634"), 8, true)
+			draw_line(points[i] + Vector2(0,-1), points[i].lerp(points[i+1], p) + Vector2(0,-1), Color("d1b27e"), 4, true)
+
 func _draw() -> void:
-	if sealed:
-		var progress := minf(age * 1.4, 1)
-		var rope_color := Color(0.82, 0.69, 0.48, clampf(1 - age * 1.1, 0, 1))
-		var points := [Vector2(-144,-5), Vector2(8,-58), Vector2(129,-2), Vector2(139,111)]
-		for i in 3:
-			var local_progress := clampf(progress * 3 - i, 0, 1)
-			draw_line(points[i], points[i].lerp(points[i + 1], local_progress), rope_color, 5, true)
-		draw_line(Vector2(-21,46), Vector2(-21,46).lerp(Vector2(-16,143), progress), rope_color, 5, true)
-	elif step == 1:
-		var p := minf(age * 2.2, 1.0)
-		var center := Vector2(0, lerpf(-190, -10, p))
-		var points := PackedVector2Array([center + Vector2(-78,-28), center + Vector2(30,-52), center + Vector2(90,4), center + Vector2(-21,23)])
-		draw_colored_polygon(points, Color(0.90, 0.84, 0.68, 1 - p * 0.6))
-	elif step >= 2:
+	if sealed: return
+	var p := progress if performing else 0.0
+	if step >= 1 or (performing and step == 0):
+		var unfold := smoothstep(0, 0.72, p) if step == 0 else 1.0
+		var center := Vector2(0, -(1 - unfold) * 110)
+		var paper := PackedVector2Array()
+		for point in RIM: paper.append(center + point * Vector2(0.22 + unfold * 0.78, 0.35 + unfold * 0.65))
+		draw_colored_polygon(paper, Color("c9b788") if protection < 0.2 else Color("e2d1a8"))
+		for i in 6:
+			draw_line(paper[0].lerp(paper[1], i / 6.0), paper[3].lerp(paper[2], i / 6.0), Color(0.40,0.31,0.19,0.2), 1, true)
+	if step >= 2 or (performing and step == 1):
+		for i in 110:
+			var u := fmod(i * 0.618, 1.0)
+			var v := fmod(i * 0.414, 1.0)
+			var target: Vector2 = RIM[0].lerp(RIM[1], u).lerp(RIM[3].lerp(RIM[2], u), v) * Vector2(0.94, 0.85)
+			var fall := clampf((p - (i % 13) * 0.035) * 2.4, 0, 1) if step == 1 else 1.0
+			if fall > 0: _leaf(Vector2(97,-150).lerp(target, fall), i)
+	if performing and step == 2:
+		var lower := smoothstep(0.06, 0.5, p)
+		var lid := PackedVector2Array()
+		for point in LID: lid.append(point + Vector2(0, -115 * (1 - lower)))
+		draw_colored_polygon(lid, Color("ac8755"))
+		draw_polyline(PackedVector2Array([lid[0],lid[1],lid[2],lid[3],lid[0]]), Color("584329"), 5, true)
+		for i in 5:
+			draw_line(lid[0].lerp(lid[1], (i+1)/6.0), lid[3].lerp(lid[2], (i+1)/6.0), Color("785733"), 2, true)
 		for i in 54:
-			var delay := (i % 9) * 0.05
-			var progress := clampf((age - delay) * 2.0, 0, 1)
-			var target := Vector2(sin(i * 7.1) * 97, sin(i * 4.2) * 22)
-			var pos := target + Vector2(40 * (1 - progress), -150 * (1 - progress))
-			draw_set_transform(pos, i * 0.4, Vector2(1.0, 0.35))
-			draw_circle(Vector2.ZERO, 5 + i % 4, Color("455132") if i % 2 == 0 else Color("665b34"))
-		draw_set_transform(Vector2.ZERO)
+			var grain := PackedVector2Array()
+			var row := (i + 0.5) / 54.0
+			for j in 17:
+				var ripple := sin(j * 0.9 + i * 1.7) * 0.002
+				grain.append(lid[0].lerp(lid[1], row + ripple).lerp(lid[3].lerp(lid[2], row + ripple), j / 16.0))
+			draw_polyline(grain, Color(0.31,0.20,0.09,0.12 + (i % 3) * 0.06), 1, true)
+		_rope([Vector2(-160,-29),Vector2(157,27),Vector2(154,146)], smoothstep(0.5,0.85,p))
+		_rope([Vector2(14,-61),Vector2(-62,43),Vector2(-65,134)], smoothstep(0.65,1.0,p))

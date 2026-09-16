@@ -2,10 +2,10 @@ config_version=5
 
 [application]
 config/name="十三行 · 茶船将发"
-config/version="0.8.0"
+config/version="0.9.0"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/description="单机茶叶篇 v0.8.0 · 外销画与晴雨场景 · 历史内容待馆方审定"
+config/description="单机茶叶篇 v0.9.0 · 订单故事与装船演出 · 历史内容待馆方审定"
 
 [display]
 window/size/viewport_width=1920

@@ -109,6 +109,7 @@ func run() -> void:
 		await tap("pack_action")
 	await capture("04_female_packing")
 	await tap("choice_0")
+	for i in 3: await tap("loading_action")
 	await tap("choice_1")
 	await capture("05_female_voyage")
 	await tap("choice_1")

@@ -65,6 +65,7 @@ func run(application) -> void:
 	assert(app.model.stage == "packing_seal")
 	await capture("12_sealed")
 	await tap("choice_0")
+	for i in 3: await tap("loading_action")
 	await tap("choice_1")
 	await capture("13_aboard")
 	await tap("choice_1")

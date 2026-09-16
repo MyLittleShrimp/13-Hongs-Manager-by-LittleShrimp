@@ -111,7 +111,7 @@ def main():
         if digest(verified / "prototype/assets/audio" / filename) != audio[filename]["sha256"]:
             raise RuntimeError("Music changed during packaging")
     results = []
-    for script in ["test_music", "test_characters", "test_performance", "test_compatibility", "test_weather_history"]:
+    for script in ["test_music", "test_characters", "test_performance", "test_compatibility", "test_weather_history", "test_commissions_loading"]:
         results += run_game(verified, out, "unpacked-" + script, "--headless", "--script",
                             "res://tests/" + script + ".gd", "--", "--self-test")
     run_game(verified, out, "unpacked-startup", "--resolution", "1280x720", "--position",

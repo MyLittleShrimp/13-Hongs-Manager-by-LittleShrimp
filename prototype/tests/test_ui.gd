@@ -60,7 +60,9 @@ func tap(id: String, use_touch: bool = true) -> void:
 			await app._tour_tap("tool_%d" % i, use_touch)
 			await app._tour_tap("work_action", use_touch)
 	if before == "voyage" and app.model.stage == "voyage_report": await app._tour_tap("choice_0", use_touch)
-	if before == "packing_work" and app.model.stage == "packing_seal": await app._tour_tap("choice_0", use_touch)
+	if before == "packing_work" and app.model.stage == "packing_seal":
+		await app._tour_tap("choice_0", use_touch)
+		for i in 3: await app._tour_tap("loading_action", use_touch)
 
 func run() -> void:
 	app = load("res://scenes/main.tscn").instantiate()

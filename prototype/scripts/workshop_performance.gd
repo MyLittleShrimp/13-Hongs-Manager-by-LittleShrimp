@@ -12,7 +12,7 @@ func begin(action_kind: String, action_step: int) -> void:
 	kind = action_kind
 	step = action_step
 	elapsed = 0
-	duration = [1.25, 1.35, 1.5][step] if kind == "inspection_work" else [1.3, 1.65, 1.8][step]
+	duration = {"inspection_work":[1.25, 1.35, 1.5], "roasting_work":[1.3, 1.65, 1.8], "packing_work":[1.5, 1.8, 2.0], "loading_work":[1.8, 1.7, 1.9]}[kind][step]
 	active = true
 	paused = false
 	queue_redraw()
@@ -26,9 +26,13 @@ func progress() -> float:
 	return clampf(elapsed / duration, 0, 1)
 
 func caption() -> String:
+	if kind == "packing_work": return ["铺衬压角", "装茶摊平", "压盖扎绳"][step]
+	if kind == "loading_work": return ["点四箱上船", "接着搬三箱", "清点最后三箱"][step]
 	return ["摊叶看形", "捻叶辨湿", "端详汤色"][step] if kind == "inspection_work" else ["拨匀炭火", "翻茶散湿", "收茶回凉"][step]
 
 func dialogue() -> String:
+	if kind == "packing_work": return ["衬料展开，四角压住。茶货放进去前，先护好箱里。", "茶货倒进来，摊平些，给合盖留好位置。", "压住箱盖，绳子收紧。封好这一箱，其余茶箱照样料理。"][step]
+	if kind == "loading_work": return ["第一批四箱。你点清，我来接应，轻放在船上。", "再来三箱，接着码好。点过的与岸上的分清，别重复算。", "最后三箱，合起来十箱。把岸上的余货再看一遍。"][step]
 	if kind == "inspection_work":
 		return ["把茶样摊开，看看叶形齐不齐。", "轻捻茶叶，辨辨干爽还是潮软。", "看看茶汤，留意清浊。"][step]
 	return ["拨匀炭火，让茶叶受热均匀。", "翻开，再摊匀，让热气散出去。", "摊开回凉，收好后再看货色。"][step]
@@ -65,6 +69,7 @@ func _steam(origin: Vector2, strength: float) -> void:
 
 func _draw() -> void:
 	if not active: return
+	if kind in ["packing_work", "loading_work"]: return
 	var p := progress()
 	if kind == "inspection_work":
 		var center := Vector2(680 + step * 310, 545)
