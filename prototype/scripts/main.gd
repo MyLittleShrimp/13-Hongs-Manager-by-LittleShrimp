@@ -472,7 +472,11 @@ func _choices() -> Array:
 			for i in 3:
 				var s: Dictionary = model.data.suppliers[i]
 				options.append([s.name + "  %d点" % model.quotes[i], "%d格 · %s" % [s.ticks, s.description]])
-		"bargain": return [["照这个价，早些取货", "照价成交 · 不额外耗时"], ["十箱一起收，匀我一点", "70%省8% · 失败原价、多耗1格"], ["这口价，还得再让些", "35%省18% · 失败原价、多耗2格"]]
+		"bargain":
+			var quote := int(model.supplier.quote)
+			return [["照这个价，早些取货", "照价成交 · 不额外耗时"],
+				["十箱一起收，匀我一点", "谈成可省 %d 点" % int(round(quote * 0.08))],
+				["这口价，还得再让些", "谈成可省 %d 点" % int(round(quote * 0.18))]]
 		"bargain_chat": return [["这批货从哪里来？", "问货源 · 了解品质起伏"], ["赶得上我的船期吗？", "问工期 · 算取货与还价时间"], ["茶样能代表整批吗？", "问货色 · 了解验货的作用"]]
 		"bargain_result":
 			return [["接过货单", "十箱货 · 把价钱和工期记清"]] if model.bargain_beat == 0 else [["请带路，去验茶", "前往验茶台 · 再定验货深度"]]
